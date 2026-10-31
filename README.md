@@ -49,7 +49,8 @@ e2e/        Playwright tests
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
 - **Compression.** `npm run build` writes Brotli and gzip copies of each asset at maximum
-  quality, and the production server serves whichever the browser accepts.
+  quality, and the production server serves whichever the browser accepts. Hashed files in
+  `assets/` are cached as immutable for a year; `index.html` always revalidates.
 - **No build step for the server.** Node runs `src/server/*.ts` directly through type stripping, so
   server code must use only erasable TypeScript syntax (enforced by `erasableSyntaxOnly`).
 

@@ -29,12 +29,22 @@ app.get(ROOT_DOC_API_PATH, (_request, response) => {
 });
 
 if (config.isProduction) {
+  const hashedAssetsDir = path.join(config.clientDir, "assets");
   // Serves the .br/.gz files written at build time when the browser accepts them.
   app.use(
     expressStaticGzip(config.clientDir, {
       enableBrotli: true,
       orderPreference: ["br"],
       index: false,
+      serveStatic: {
+        setHeaders: (response, filePath) => {
+          // Vite puts a content hash in every filename under assets/, so a URL's content never
+          // changes. Everything else (index.html, favicon) keeps revalidating to pick up deploys.
+          if (filePath.startsWith(hashedAssetsDir + path.sep)) {
+            response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+        },
+      },
     }),
   );
   app.get("/{*splat}", (_request, response) => {
