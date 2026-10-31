@@ -72,5 +72,5 @@
       }
     }
   ],
-  "ignorePatterns": ["dist/**", "data/**"]
+  "ignorePatterns": ["dist/**", "data/**", "test-results/**", "playwright-report/**"]
 }
