@@ -49,8 +49,10 @@ e2e/        Playwright tests
 - **UI.** [shadcn/ui](https://ui.shadcn.com) components on [Base UI](https://base-ui.com), styled
   with Tailwind CSS v4. Generated components live in `src/client/components/ui/`; add more with
   `npx shadcn add <component>`. Theme colors are CSS variables in `src/client/styles.css`. The
-  light/dark/system choice is stored in `localStorage` and applied by an inline script in
-  `index.html` before first paint.
+  light/dark/system choice (on the Settings page) is stored in `localStorage` and applied by an
+  inline script in `index.html` before first paint.
+- **Routing.** The URL hash says what the main pane shows: a note's Automerge URL, `#settings`,
+  or nothing (see `useRoute`).
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
 - **Cursors.** The note editor shows other people's carets and selections, shared through

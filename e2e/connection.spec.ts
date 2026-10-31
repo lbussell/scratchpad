@@ -5,12 +5,20 @@ test("shows offline while the browser has no network", async ({ page, context })
   const status = page.getByRole("status", { name: "Connection" });
   await expect(status).toHaveText(/^Online/);
 
+  const onlineBadge = page.locator("[data-slot=avatar-badge]");
+  const offlineBanner = page.getByRole("alert");
+  await expect(onlineBadge).toBeVisible();
+  await expect(offlineBanner).toBeHidden();
+
   await context.setOffline(true);
   await expect(status).toHaveText(/^Offline/);
-  await expect(status).toContainText("will sync when you reconnect");
+  await expect(offlineBanner).toContainText("will sync when you reconnect");
+  await expect(onlineBadge).toBeHidden();
 
   await context.setOffline(false);
   await expect(status).toHaveText(/^Online/);
+  await expect(offlineBanner).toBeHidden();
+  await expect(onlineBadge).toBeVisible();
 });
 
 test("shows offline while the sync server is unreachable", async ({ page }) => {
