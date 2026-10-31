@@ -4,10 +4,10 @@ import { openInNewBrowser } from "./helpers.ts";
 const sidebarFooter = (page: Page) => page.locator("[data-slot=sidebar-footer]");
 
 async function rename(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "Edit name" }).click();
-  await page.getByRole("textbox", { name: "Name" }).fill(name);
+  await page.getByRole("button", { name: "Edit display name" }).click();
+  await page.getByRole("textbox", { name: "Display name" }).fill(name);
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByRole("textbox", { name: "Name" })).toBeHidden();
+  await expect(page.getByRole("textbox", { name: "Display name" })).toBeHidden();
 }
 
 test("new users are named after their email and can rename themselves", async ({ browser }) => {
@@ -17,12 +17,12 @@ test("new users are named after their email and can rename themselves", async ({
 
   await page.getByRole("link", { name: "Settings" }).click();
   const main = page.getByRole("main");
-  await expect(main).toContainText(`grace.${id}@example.com`);
-  const nameField = page.getByRole("textbox", { name: "Name" });
+  await expect(main).toContainText(`grace.${id}`);
+  const nameField = page.getByRole("textbox", { name: "Display name" });
   await expect(nameField).toBeHidden();
 
   // Editing starts with the current name, ready to type over.
-  await page.getByRole("button", { name: "Edit name" }).click();
+  await page.getByRole("button", { name: "Edit display name" }).click();
   await expect(nameField).toBeFocused();
   await expect(nameField).toHaveValue(`grace.${id}`);
 
@@ -34,7 +34,7 @@ test("new users are named after their email and can rename themselves", async ({
   await nameField.fill("Grace Hopper");
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(nameField).toBeHidden();
-  await page.getByRole("button", { name: "Edit name" }).click();
+  await page.getByRole("button", { name: "Edit display name" }).click();
   await nameField.fill("Grace Hopper");
   await nameField.press("Escape");
   await expect(nameField).toBeHidden();

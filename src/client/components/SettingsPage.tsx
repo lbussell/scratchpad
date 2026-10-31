@@ -1,4 +1,4 @@
-import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MonitorIcon, MoonIcon, PencilIcon, SunIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,20 +31,17 @@ const themes: { value: Theme; label: string; icon: ReactNode }[] = [
   { value: "system", label: "System", icon: <MonitorIcon /> },
 ];
 
-/** Settings are rows: a label on the left, the value or control on the right. */
+/**
+ * Settings are rows: a label on the left, the value or control on the right. Text values are
+ * muted.
+ */
 export function SettingsPage() {
-  const { user } = useCurrentUser();
-
   return (
     <div className="mx-auto w-full max-w-2xl p-6">
       <FieldGroup>
         <FieldSet>
           <FieldLegend>Profile</FieldLegend>
           <NameSetting />
-          <Field orientation="horizontal">
-            <FieldTitle>Email</FieldTitle>
-            <span className="text-sm text-muted-foreground">{user.email}</span>
-          </Field>
         </FieldSet>
         <FieldSeparator />
         <FieldSet>
@@ -71,10 +68,16 @@ function NameSetting() {
   if (draft === undefined) {
     return (
       <Field orientation="horizontal">
-        <FieldTitle>Name</FieldTitle>
-        <span className="truncate text-sm">{user.name}</span>
-        <Button variant="outline" aria-label="Edit name" onClick={() => setDraft(user.name)}>
-          Edit
+        <FieldTitle>Display name</FieldTitle>
+        <span className="truncate text-sm text-muted-foreground">{user.name}</span>
+        {/* Full icon size matches the field's height, so the row doesn't jump when editing. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Edit display name"
+          onClick={() => setDraft(user.name)}
+        >
+          <PencilIcon />
         </Button>
       </Field>
     );
@@ -107,7 +110,7 @@ function NameSetting() {
       }}
     >
       <Field orientation="horizontal" data-invalid={name === undefined || error !== undefined}>
-        <FieldLabel htmlFor="profile-name">Name</FieldLabel>
+        <FieldLabel htmlFor="profile-name">Display name</FieldLabel>
         <Input
           id="profile-name"
           className="w-56"
