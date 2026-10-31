@@ -5,6 +5,7 @@ import { EditorView, placeholder } from "@codemirror/view";
 import { minimalSetup } from "codemirror";
 import { useEffect, useRef } from "react";
 import type { NoteDoc } from "../../shared/schema.ts";
+import { remoteCursors } from "../remoteCursors.ts";
 
 // CodeMirror's default theme hardcodes light-mode colors and is injected at runtime with
 // selectors plain CSS can't easily beat, so override it here using the shadcn theme variables.
@@ -38,11 +39,16 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
         placeholder("Start typing…"),
         EditorView.contentAttributes.of({ "aria-label": "Note" }),
         automergeSyncPlugin({ handle, path: ["text"] }),
+        remoteCursors(handle, ["text"]),
       ],
       parent,
     });
-    // A new note's title field takes focus instead (see NoteTitle).
-    if (handle.doc().title !== "") view.focus();
+    // The editor loads lazily, so don't steal focus from someone already typing, e.g. in the
+    // title of a new note (see NoteTitle).
+    const { activeElement } = document;
+    const isTyping =
+      activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
+    if (!isTyping) view.focus();
     return () => view.destroy();
   }, [handle]);
 

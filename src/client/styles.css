@@ -86,6 +86,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Other people's cursors: each user has their own hue, at this lightness and chroma. Chroma is
+     the most every hue can reach in sRGB at this lightness, so all hues look equally strong. */
+  --presence-lightness: 0.62;
+  --presence-chroma: 0.105;
 }
 
 .dark {
@@ -123,6 +127,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --presence-lightness: 0.75;
+  --presence-chroma: 0.125;
 }
 
 @layer base {

@@ -1,22 +1,5 @@
-import { type Browser, expect, type Page, test } from "@playwright/test";
-
-/** Each context has its own IndexedDB and BroadcastChannel, like a separate browser. */
-async function openInNewBrowser(browser: Browser): Promise<Page> {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.goto("/");
-  return page;
-}
-
-const titleField = (page: Page) => page.getByRole("textbox", { name: "Title" });
-const noteEditor = (page: Page) => page.getByRole("textbox", { name: "Note" });
-
-/** Creates a note; the title field has focus first. */
-async function createNote(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "New note" }).click();
-  await expect(titleField(page)).toBeFocused();
-  await page.keyboard.type(title);
-}
+import { expect, test } from "@playwright/test";
+import { createNote, noteEditor, openInNewBrowser, titleField } from "./helpers.ts";
 
 test("notes and edits sync between separate browsers via the server", async ({ browser }) => {
   const alice = await openInNewBrowser(browser);

@@ -53,6 +53,10 @@ e2e/        Playwright tests
   `index.html` before first paint.
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
+- **Cursors.** The note editor shows other people's carets and selections, shared through
+  Automerge's ephemeral presence messages (relayed by the server, never stored). Each browser
+  picks a random hue once; lightness and chroma are fixed per theme (`--presence-*` in
+  `styles.css`) so every color is equally visible.
 - **Text fields.** Plain `<input>`s and `<textarea>`s, like the note title, bind to Automerge
   strings with `useAutomergeText`, which merges edits character by character and keeps the caret
   in place when someone else edits.
