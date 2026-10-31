@@ -1,0 +1,70 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "react",
+    "jsx-a11y",
+    "promise",
+    "node"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "env": {
+    "builtin": true
+  },
+  "rules": {
+    "eqeqeq": "error",
+    "no-console": [
+      "error",
+      {
+        "allow": ["info", "warn", "error"]
+      }
+    ],
+    "import/no-cycle": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/only-export-components": [
+      "error",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/prefer-nullish-coalescing": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "react/react-in-jsx-scope": "off"
+  },
+  "overrides": [
+    {
+      "files": ["server/**", "vite.config.ts"],
+      "env": {
+        "node": true
+      }
+    },
+    {
+      "files": ["src/**"],
+      "env": {
+        "browser": true
+      }
+    }
+  ],
+  "ignorePatterns": ["dist/**", "data/**"]
+}
