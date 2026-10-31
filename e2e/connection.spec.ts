@@ -2,7 +2,7 @@ import { expect, test, type WebSocketRoute } from "@playwright/test";
 
 test("shows offline while the browser has no network", async ({ page, context }) => {
   await page.goto("/");
-  const status = page.getByRole("status");
+  const status = page.getByRole("status", { name: "Connection" });
   await expect(status).toHaveText(/^Online/);
 
   await context.setOffline(true);
@@ -26,7 +26,7 @@ test("shows offline while the sync server is unreachable", async ({ page }) => {
   });
 
   await page.goto("/");
-  const status = page.getByRole("status");
+  const status = page.getByRole("status", { name: "Connection" });
   await expect(status).toHaveText(/^Online/);
 
   serverDown = true;
@@ -48,7 +48,7 @@ test("loads notes once the sync server becomes reachable", async ({ page }) => {
   });
 
   await page.goto("/");
-  await expect(page.getByRole("status")).toHaveText(/^Offline/);
+  await expect(page.getByRole("status", { name: "Connection" })).toHaveText(/^Offline/);
 
   serverDown = false;
   await expect(page.getByRole("button", { name: "New note" })).toBeVisible({ timeout: 15_000 });

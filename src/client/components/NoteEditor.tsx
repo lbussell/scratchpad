@@ -7,15 +7,18 @@ import { useEffect, useRef } from "react";
 import type { NoteDoc } from "../../shared/schema.ts";
 
 // CodeMirror's default theme hardcodes light-mode colors and is injected at runtime with
-// selectors plain CSS can't easily beat, so override it here using the app's CSS variables.
+// selectors plain CSS can't easily beat, so override it here using the shadcn theme variables.
 const editorTheme = EditorView.theme({
   "&": { height: "100%", fontSize: "1rem" },
   "&.cm-focused": { outline: "none" },
-  ".cm-scroller": { padding: "24px 32px", fontFamily: "inherit" },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--fg)" },
+  ".cm-scroller": {
+    padding: "calc(var(--spacing) * 6) calc(var(--spacing) * 8)",
+    fontFamily: "inherit",
+  },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--foreground)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    { backgroundColor: "var(--text-selection)" },
-  ".cm-placeholder": { color: "var(--fg-muted)" },
+    { backgroundColor: "color-mix(in oklch, var(--foreground) 20%, transparent)" },
+  ".cm-placeholder": { color: "var(--muted-foreground)" },
 });
 
 export function NoteEditor({ url }: { url: AutomergeUrl }) {
@@ -41,5 +44,5 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
     return () => view.destroy();
   }, [handle]);
 
-  return <div className="note-editor" ref={containerRef} />;
+  return <div className="h-full" ref={containerRef} />;
 }

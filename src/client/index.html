@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Scratchpad</title>
+    <script>
+      // Apply the theme before first paint so dark mode doesn't flash light. Keep in sync with
+      // theme.ts, which takes over once the app loads.
+      let theme;
+      try {
+        theme = localStorage.getItem("theme");
+      } catch {}
+      const dark =
+        theme === "dark" ||
+        (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.classList.toggle("dark", dark);
+    </script>
   </head>
   <body>
     <div id="root"></div>

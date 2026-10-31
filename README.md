@@ -46,6 +46,11 @@ e2e/        Playwright tests
   `data/root-doc-url`. Clients fetch it from `/api/root`.
 - **Storage.** The server persists documents in `data/` (override with `DATA_DIR`). Delete it to
   start fresh. Clients cache documents in IndexedDB and sync between tabs over BroadcastChannel.
+- **UI.** [shadcn/ui](https://ui.shadcn.com) components on [Base UI](https://base-ui.com), styled
+  with Tailwind CSS v4. Generated components live in `src/client/components/ui/`; add more with
+  `npx shadcn add <component>`. Theme colors are CSS variables in `src/client/styles.css`. The
+  light/dark/system choice is stored in `localStorage` and applied by an inline script in
+  `index.html` before first paint.
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
 - **Compression.** `npm run build` writes Brotli and gzip copies of each asset at maximum
@@ -60,5 +65,9 @@ e2e/        Playwright tests
   `exactOptionalPropertyTypes`
 - [Oxlint](https://oxc.rs/docs/guide/usage/linter) with type-aware rules, configured to fail on
   any warning
+- [@shadcn/lint](https://github.com/shadcn-ui/lint), as an Oxlint plugin, enforces the design
+  system: theme colors only, no arbitrary values, inline styles, unknown classes or dynamic class
+  strings, and pages may only position components (`className` layout classes such as margin or
+  width), not restyle them. Components in `components/ui/` are allowed to style themselves.
 - [Oxfmt](https://oxc.rs/docs/guide/usage/formatter) for formatting. Install the recommended Oxc
   VS Code extension to format on save.

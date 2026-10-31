@@ -1,8 +1,18 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
+import { NotebookPenIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
+import {
+  Sidebar,
+  SidebarFooter,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { ConnectionIndicator } from "./components/ConnectionIndicator.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
 import { NoteList } from "./components/NoteList.tsx";
+import { StatusMessage } from "./components/StatusMessage.tsx";
+import { ThemeToggle } from "./components/ThemeToggle.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
 import { useSelectedNote } from "./hooks/useSelectedNote.ts";
 import type { ServerConnection } from "./serverConnection.ts";
@@ -23,35 +33,47 @@ export function App({ rootDocUrl, serverConnection }: AppProps) {
   const connectionStatus = useConnectionStatus(serverConnection);
 
   return (
-    <div className="app">
-      <aside className="sidebar">
+    <SidebarProvider className="h-svh">
+      <Sidebar>
         <DocumentBoundary
           url={rootDocUrl}
-          fallback={<p className="status">Couldn’t load notes. Waiting for the server…</p>}
+          fallback={
+            <StatusMessage pending>Couldn’t load notes. Waiting for the server…</StatusMessage>
+          }
         >
-          <Suspense fallback={<p className="status">Loading notes…</p>}>
+          <Suspense fallback={<StatusMessage pending>Loading notes…</StatusMessage>}>
             <NoteList rootDocUrl={rootDocUrl} selected={selected} onSelect={select} />
           </Suspense>
         </DocumentBoundary>
-        <footer className="sidebar-footer">
+        <SidebarFooter className="flex-row items-start justify-between">
           <ConnectionIndicator status={connectionStatus} />
-        </footer>
-      </aside>
-      <main className="editor-pane">
-        {selected ? (
-          <DocumentBoundary
-            key={selected}
-            url={selected}
-            fallback={<p className="status">Couldn’t load note. Waiting for the server…</p>}
-          >
-            <Suspense fallback={<p className="status">Loading note…</p>}>
-              <NoteEditor key={selected} url={selected} />
-            </Suspense>
-          </DocumentBoundary>
-        ) : (
-          <p className="status">Select a note, or create a new one.</p>
-        )}
-      </main>
-    </div>
+          <ThemeToggle />
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset className="min-w-0">
+        <header className="flex h-12 shrink-0 items-center border-b px-2">
+          <SidebarTrigger />
+        </header>
+        <div className="flex min-h-0 flex-1 flex-col">
+          {selected ? (
+            <DocumentBoundary
+              key={selected}
+              url={selected}
+              fallback={
+                <StatusMessage pending>Couldn’t load note. Waiting for the server…</StatusMessage>
+              }
+            >
+              <Suspense fallback={<StatusMessage pending>Loading note…</StatusMessage>}>
+                <NoteEditor key={selected} url={selected} />
+              </Suspense>
+            </DocumentBoundary>
+          ) : (
+            <StatusMessage icon={<NotebookPenIcon />}>
+              Select a note, or create a new one.
+            </StatusMessage>
+          )}
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
