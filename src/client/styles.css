@@ -73,6 +73,9 @@
   --accent-chroma: 0.085;
   --primary: oklch(var(--accent-lightness) calc(var(--accent-chroma) * var(--vivid)) var(--hue));
   --primary-foreground: oklch(0.985 0.007 var(--hue));
+  /* The color picker's swatches: brighter than the accent, so the choices read as colors. */
+  --swatch-lightness: 0.68;
+  --swatch-chroma: 0.116;
   --secondary: oklch(0.965 0.008 var(--hue));
   --secondary-foreground: oklch(0.21 0.015 var(--hue));
   --muted: var(--secondary);
@@ -114,6 +117,8 @@
   --accent-lightness: 0.72;
   --accent-chroma: 0.12;
   --primary-foreground: oklch(0.2 0.02 var(--hue));
+  --swatch-lightness: var(--accent-lightness);
+  --swatch-chroma: var(--accent-chroma);
   --secondary: oklch(0.27 0.015 var(--hue));
   --secondary-foreground: var(--foreground);
   --muted-foreground: oklch(0.71 0.02 var(--hue));
@@ -143,10 +148,10 @@
   }
 }
 
-/* A color swatch: the accent color, at the hue in --swatch-hue. */
+/* A color swatch, at the hue in --swatch-hue. */
 @utility bg-swatch {
   background-color: oklch(
-    var(--accent-lightness) calc(var(--accent-chroma) * var(--vivid)) var(--swatch-hue)
+    var(--swatch-lightness) calc(var(--swatch-chroma) * var(--vivid)) var(--swatch-hue)
   );
 }
 
