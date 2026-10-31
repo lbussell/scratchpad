@@ -16,3 +16,7 @@ See README.md for architecture and scripts.
   stricter lint rules. Fix them in the generated file.
 - Bind text inputs to Automerge strings with `useAutomergeText` (or CodeMirror for long-form
   text), not a plain controlled `value`/`onChange`, which makes the caret jump on remote edits.
+- Per-user data that only its owner may change (profiles, settings) lives on the server
+  (`src/server/users.ts`), not in Automerge documents, which every client can write.
+- Server logic that e2e tests can't reach (production-only behavior) gets `node --test` unit
+  tests next to it (`*.test.ts`).

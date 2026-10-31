@@ -5,6 +5,7 @@ import { EditorView, placeholder } from "@codemirror/view";
 import { minimalSetup } from "codemirror";
 import { useEffect, useRef } from "react";
 import type { NoteDoc } from "../../shared/schema.ts";
+import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { remoteCursors } from "../remoteCursors.ts";
 
 // CodeMirror's default theme hardcodes light-mode colors and is injected at runtime with
@@ -25,6 +26,8 @@ const editorTheme = EditorView.theme({
 export function NoteEditor({ url }: { url: AutomergeUrl }) {
   const handle = useDocHandle<NoteDoc>(url, { suspense: true });
   const containerRef = useRef<HTMLDivElement>(null);
+  // Only what the cursor needs, so renaming yourself doesn't rebuild the editor.
+  const { id: userId, hue } = useCurrentUser().user;
 
   useEffect(() => {
     const parent = containerRef.current;
@@ -39,7 +42,7 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
         placeholder("Start typing…"),
         EditorView.contentAttributes.of({ "aria-label": "Note" }),
         automergeSyncPlugin({ handle, path: ["text"] }),
-        remoteCursors(handle, ["text"]),
+        remoteCursors(handle, ["text"], { id: userId, hue }),
       ],
       parent,
     });
@@ -50,7 +53,7 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
       activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
     if (!isTyping) view.focus();
     return () => view.destroy();
-  }, [handle]);
+  }, [handle, userId, hue]);
 
   return <div className="h-full" ref={containerRef} />;
 }

@@ -24,7 +24,7 @@ appear everywhere live.
 | `npm run build`                       | Type-check and build the client to `dist/client`                 |
 | `npm start`                           | Production server: static app + sync server on one port (`PORT`) |
 | `npm run check`                       | Type-check, lint, and verify formatting (what CI runs)           |
-| `npm test`                            | Playwright end-to-end tests against a throwaway server           |
+| `npm test`                            | Unit tests (`node --test`), then Playwright end-to-end tests     |
 | `npm run lint:fix` / `npm run format` | Auto-fix lint issues / format everything                         |
 
 A pre-commit hook lints and formats staged files and type-checks the project.
@@ -34,8 +34,8 @@ A pre-commit hook lints and formats staged files and type-checks the project.
 ```
 src/
   client/   React app; also Vite's root (index.html, public/)
-  server/   Express server: Automerge sync over WebSocket at /sync, root doc URL at /api/root,
-            and the client (Vite middleware in dev, static files from dist/client in prod)
+  server/   Express server: auth, Automerge sync over WebSocket at /sync, the session and
+            profile API, and the client (Vite middleware in dev, dist/client in prod)
   shared/   Types and constants used by both sides (document schemas, URL paths)
 e2e/        Playwright tests
 ```
@@ -43,7 +43,7 @@ e2e/        Playwright tests
 - **One server.** `src/server/index.ts` hosts the Automerge sync server and the web app on the same
   port in both dev and prod, so there's no proxying and no second process.
 - **Root document.** On first start the server creates the root document and saves its URL to
-  `data/root-doc-url`. Clients fetch it from `/api/root`.
+  `data/root-doc-url`. Clients fetch it, along with who they are, from `/api/session`.
 - **Storage.** The server persists documents in `data/` (override with `DATA_DIR`). Delete it to
   start fresh. Clients cache documents in IndexedDB and sync between tabs over BroadcastChannel.
 - **UI.** [shadcn/ui](https://ui.shadcn.com) components on [Base UI](https://base-ui.com), styled
@@ -67,6 +67,37 @@ e2e/        Playwright tests
   `assets/` are cached as immutable for a year; `index.html` always revalidates.
 - **No build step for the server.** Node runs `src/server/*.ts` directly through type stripping, so
   server code must use only erasable TypeScript syntax (enforced by `erasableSyntaxOnly`).
+
+## Authentication
+
+The app expects to run behind an HTTPS proxy that signs people in and passes who they are in
+request headers, as [exe.dev](https://www.exe.dev/docs/login-with-exe.md) does. Everyone the
+proxy lets through is a user. The server identifies them from the headers on every request,
+including the `/sync` WebSocket. It keeps profiles (name, cursor color) in `data/users.json`,
+and each user can change only their own name. A new user's name defaults to the part of their
+email before the `@`.
+
+**Only expose the app through the proxy.** Anyone who can reach the server directly can send
+their own identity headers. Set `HOST=127.0.0.1` if the proxy runs on the same machine.
+
+| Variable              | Default            | Purpose                                                        |
+| --------------------- | ------------------ | -------------------------------------------------------------- |
+| `AUTH_USER_ID_HEADER` | `X-ExeDev-UserID`  | Header with the user's stable ID                               |
+| `AUTH_EMAIL_HEADER`   | `X-ExeDev-Email`   | Header with the user's email                                   |
+| `AUTH_LOGIN_URL`      | (none: plain 401)  | Where signed-out visitors go; `{path}` is the page they wanted |
+| `AUTH_LOGOUT_URL`     | (none: no log out) | The client POSTs here to log out                               |
+| `HOST`                | all interfaces     | Address to listen on                                           |
+| `DEV_USER_ID`         | `dev`              | Development only: user for requests without the headers        |
+| `DEV_USER_EMAIL`      | `dev@example.com`  | Development only: that user's email                            |
+
+For exe.dev:
+
+```sh
+AUTH_LOGIN_URL='/__exe.dev/login?redirect={path}' AUTH_LOGOUT_URL=/__exe.dev/logout npm start
+```
+
+In development, requests without identity headers belong to the dev user. Headers still win, which
+is how the e2e tests act as different users (see `e2e/helpers.ts`).
 
 ## Tooling
 

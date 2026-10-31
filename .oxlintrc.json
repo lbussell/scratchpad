@@ -81,6 +81,9 @@
       "files": ["src/server/**", "vite.config.ts"],
       "env": {
         "node": true
+      },
+      "rules": {
+        "oxc/no-async-endpoint-handlers": "off"
       }
     },
     {
@@ -96,6 +99,12 @@
         "shadcn/no-arbitrary-values": "off",
         "shadcn/require-static-classes": "off",
         "react/only-export-components": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "typescript/no-floating-promises": "off"
       }
     }
   ],

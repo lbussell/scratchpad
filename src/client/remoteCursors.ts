@@ -15,11 +15,14 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import { isUser, localUser, type User } from "./user.ts";
+import type { UserProfile } from "../shared/schema.ts";
+
+/** What peers need to know about a user to draw their cursor. */
+export type CursorUser = Pick<UserProfile, "id" | "hue">;
 
 /** What each peer shares about itself, over Automerge's ephemeral messages. */
 type CursorPresence = {
-  user: User;
+  user: CursorUser;
   /**
    * Automerge cursors rather than indexes, so they point at the same characters on every peer
    * even while edits are in flight. Null while the editor doesn't have focus.
@@ -79,7 +82,7 @@ class CaretWidget extends WidgetType {
  * Shows other people's carets and selections in the text at `path`, each in their user's color,
  * and shares ours with them.
  */
-export function remoteCursors(handle: DocHandle<unknown>, path: Prop[]) {
+export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: CursorUser) {
   const plugin = ViewPlugin.fromClass(
     class {
       decorations: DecorationSet = Decoration.none;
@@ -129,7 +132,7 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[]) {
       #start = () => {
         if (this.#presence.running) return;
         this.#lastBroadcast = "null";
-        this.#presence.start({ initialState: { user: localUser, selection: null } });
+        this.#presence.start({ initialState: { user, selection: null } });
         this.#scheduleBroadcast();
       };
 
@@ -215,7 +218,7 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[]) {
 
 function isCursorPresence(value: unknown): value is CursorPresence {
   if (typeof value !== "object" || value === null) return false;
-  if (!("user" in value) || !isUser(value.user) || !("selection" in value)) return false;
+  if (!("user" in value) || !isCursorUser(value.user) || !("selection" in value)) return false;
   const { selection } = value;
   return (
     selection === null ||
@@ -224,5 +227,17 @@ function isCursorPresence(value: unknown): value is CursorPresence {
       typeof selection.anchor === "string" &&
       "head" in selection &&
       typeof selection.head === "string")
+  );
+}
+
+function isCursorUser(value: unknown): value is CursorUser {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "hue" in value &&
+    typeof value.hue === "number" &&
+    Number.isFinite(value.hue)
   );
 }

@@ -1,8 +1,19 @@
 import { type Browser, expect, type Page } from "@playwright/test";
 
-/** Each context has its own IndexedDB and BroadcastChannel, like a separate browser. */
-export async function openInNewBrowser(browser: Browser): Promise<Page> {
-  const context = await browser.newContext();
+/** Headers the auth proxy would add for this user (exe.dev's, the server's defaults). */
+export function identityHeaders(email: string): Record<string, string> {
+  return { "x-exedev-userid": `id-${email}`, "x-exedev-email": email };
+}
+
+/**
+ * Each context has its own IndexedDB and BroadcastChannel, like a separate browser, and is signed
+ * in as its own user unless one is given.
+ */
+export async function openInNewBrowser(
+  browser: Browser,
+  email = `${crypto.randomUUID()}@example.com`,
+): Promise<Page> {
+  const context = await browser.newContext({ extraHTTPHeaders: identityHeaders(email) });
   const page = await context.newPage();
   await page.goto("/");
   return page;
