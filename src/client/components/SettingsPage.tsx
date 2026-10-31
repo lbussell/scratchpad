@@ -1,6 +1,7 @@
 import { MonitorIcon, MoonIcon, PencilIcon, SunIcon } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ColorSwatches } from "@/components/ui/color-swatches";
 import {
   Field,
   FieldError,
@@ -19,10 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAX_NAME_LENGTH, normalizeName } from "../../shared/schema.ts";
+import { HUES, isValidHue, MAX_NAME_LENGTH, normalizeName } from "../../shared/schema.ts";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { useTheme } from "../hooks/useTheme.ts";
-import { saveName } from "../session.ts";
+import { updateProfile } from "../session.ts";
 import { isTheme, type Theme } from "../theme.ts";
 
 const themes: { value: Theme; label: string; icon: ReactNode }[] = [
@@ -46,6 +47,7 @@ export function SettingsPage() {
         <FieldSeparator />
         <FieldSet>
           <FieldLegend>Appearance</FieldLegend>
+          <ColorSetting />
           <ThemeSetting />
         </FieldSet>
       </FieldGroup>
@@ -93,7 +95,7 @@ function NameSetting() {
     setIsSaving(true);
     setError(undefined);
     try {
-      setUser(await saveName(name));
+      setUser(await updateProfile({ name }));
       stopEditing();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Couldn’t save");
@@ -135,6 +137,46 @@ function NameSetting() {
       {name === undefined && <FieldError className="mt-2 text-right">Enter a name.</FieldError>}
       {error !== undefined && <FieldError className="mt-2 text-right">{error}</FieldError>}
     </form>
+  );
+}
+
+/** Your color: it tints the whole app, and others see your cursor in it. Applies as you pick. */
+function ColorSetting() {
+  const { user, setUser } = useCurrentUser();
+  const [error, setError] = useState<string>();
+  // Only the latest pick's response counts, if several are in flight.
+  const latestRequest = useRef(0);
+
+  const choose = async (hue: number) => {
+    const request = ++latestRequest.current;
+    const previous = user;
+    setUser({ ...user, hue });
+    setError(undefined);
+    try {
+      const updated = await updateProfile({ hue });
+      if (request === latestRequest.current) setUser(updated);
+    } catch (saveError) {
+      if (request !== latestRequest.current) return;
+      setUser(previous);
+      setError(saveError instanceof Error ? saveError.message : "Couldn’t save");
+    }
+  };
+
+  return (
+    <Field orientation="horizontal" className="items-start">
+      <FieldTitle>Color</FieldTitle>
+      <div className="flex flex-col items-end gap-2">
+        <ColorSwatches
+          aria-label="Color"
+          swatches={HUES}
+          value={user.hue}
+          onValueChange={(value) => {
+            if (isValidHue(value)) void choose(value);
+          }}
+        />
+        {error !== undefined && <FieldError>{error}</FieldError>}
+      </div>
+    </Field>
   );
 }
 

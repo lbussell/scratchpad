@@ -56,3 +56,16 @@ export function subscribeToTheme(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+
+// index.html reads this too, to color the page before the session arrives.
+const HUE_STORAGE_KEY = "hue";
+
+/** Colors the whole app with the user's hue (see styles.css), and remembers it for next time. */
+export function applyHue(hue: number): void {
+  document.documentElement.style.setProperty("--hue", String(hue));
+  try {
+    localStorage.setItem(HUE_STORAGE_KEY, String(hue));
+  } catch {
+    // Only the next page load's first paint misses out.
+  }
+}

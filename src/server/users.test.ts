@@ -50,12 +50,17 @@ describe("UserStore", () => {
     assert.equal(Math.min(distance, 360 - distance), 180);
   });
 
-  it("renames only the given user", async () => {
+  it("updates only the given user", async () => {
     const dir = await tempDir();
     const store = await UserStore.open(dir);
-    await store.ensure({ id: "u2", email: "bob@example.com" });
-    const renamed = await store.rename({ id: "u1", email: "ada@example.com" }, "Ada Lovelace");
+    const bob = await store.ensure({ id: "u2", email: "bob@example.com" });
+    const ada = { id: "u1", email: "ada@example.com" };
+    const renamed = await store.update(ada, { name: "Ada Lovelace" });
     assert.equal(renamed.name, "Ada Lovelace");
+    const recolored = await store.update(ada, { hue: 30 });
+    assert.equal(recolored.hue, 30);
+    assert.equal(recolored.name, "Ada Lovelace");
+    assert.equal((await store.ensure(bob)).hue, bob.hue);
 
     const reopened = await UserStore.open(dir);
     assert.equal(

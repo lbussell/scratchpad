@@ -1,5 +1,5 @@
 import { NotebookPenIcon, SettingsIcon } from "lucide-react";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useLayoutEffect, useMemo, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,7 @@ import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
 import type { SessionResponse } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
 import type { ServerConnection } from "./serverConnection.ts";
+import { applyHue } from "./theme.ts";
 
 // CodeMirror is a large share of the bundle and isn't needed until a note is open.
 const NoteEditor = lazy(async () => {
@@ -45,6 +46,8 @@ export function App({ session, serverConnection }: AppProps) {
   const connectionStatus = useConnectionStatus(serverConnection);
   const [user, setUser] = useState(session.user);
   const currentUser = useMemo(() => ({ user, setUser }), [user]);
+  // Before paint, so a changed color never shows the old one.
+  useLayoutEffect(() => applyHue(user.hue), [user.hue]);
 
   return (
     <CurrentUserContext.Provider value={currentUser}>

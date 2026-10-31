@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { MAX_NAME_LENGTH, type UserProfile } from "../shared/schema.ts";
+import { HUES, MAX_NAME_LENGTH, type UserProfile } from "../shared/schema.ts";
 import type { Identity } from "./auth.ts";
 
 type StoredUser = Omit<UserProfile, "id">;
@@ -48,9 +48,12 @@ export class UserStore {
     return { id: identity.id, ...user };
   }
 
-  /** `name` must already be normalized (see normalizeName). */
-  async rename(identity: Identity, name: string): Promise<UserProfile> {
-    const user = { ...(await this.ensure(identity)), name };
+  /** Changes are applied as given, so validate them first (see normalizeName, isValidHue). */
+  async update(
+    identity: Identity,
+    changes: Partial<Pick<UserProfile, "name" | "hue">>,
+  ): Promise<UserProfile> {
+    const user = { ...(await this.ensure(identity)), ...changes };
     const { id, ...stored } = user;
     this.#users.set(id, stored);
     await this.#save();
@@ -72,12 +75,13 @@ export function defaultName(email: string): string {
   return (localPart === "" ? email : localPart).slice(0, MAX_NAME_LENGTH);
 }
 
-/** The hue farthest from all the given hues, so every user's color stands apart. */
+/** The available hue farthest from all the given ones, so every user's color stands apart. */
 export function pickHue(hues: number[], random = Math.random): number {
-  if (hues.length === 0) return Math.floor(random() * 360);
+  const choices = HUES.map(({ hue }) => hue);
+  if (hues.length === 0) return choices[Math.floor(random() * choices.length)] ?? 0;
   let best = 0;
   let bestDistance = -1;
-  for (let hue = 0; hue < 360; hue++) {
+  for (const hue of choices) {
     const distance = Math.min(...hues.map((other) => hueDistance(hue, other)));
     if (distance > bestDistance) {
       best = hue;

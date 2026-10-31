@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openInNewBrowser } from "./helpers.ts";
 
 test("the theme can be changed in settings and is remembered", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
@@ -19,4 +20,18 @@ test("the theme can be changed in settings and is remembered", async ({ page }) 
   await page.reload();
   await expect(html).toHaveClass(/dark/);
   await expect(theme).toHaveText("Dark");
+});
+
+test("your color tints the app and is remembered", async ({ browser }) => {
+  const page = await openInNewBrowser(browser);
+  await page.getByRole("link", { name: "Settings" }).click();
+  const html = page.locator("html");
+
+  await page.getByRole("radio", { name: "Teal" }).click();
+  await expect(page.getByRole("radio", { name: "Teal" })).toBeChecked();
+  await expect(html).toHaveAttribute("style", /--hue: 180/);
+
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Teal" })).toBeChecked();
+  await expect(html).toHaveAttribute("style", /--hue: 180/);
 });

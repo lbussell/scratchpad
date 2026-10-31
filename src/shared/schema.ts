@@ -11,13 +11,51 @@ export const PROFILE_API_PATH = "/api/me";
 
 export const MAX_NAME_LENGTH = 80;
 
+/**
+ * The colors users can choose: 24 OKLCH hues, 15° apart. Names are for people (labels, screen
+ * readers) and only approximate.
+ */
+export const HUES = [
+  { hue: 0, name: "Pink" },
+  { hue: 15, name: "Rose" },
+  { hue: 30, name: "Red" },
+  { hue: 45, name: "Vermilion" },
+  { hue: 60, name: "Orange" },
+  { hue: 75, name: "Amber" },
+  { hue: 90, name: "Gold" },
+  { hue: 105, name: "Yellow" },
+  { hue: 120, name: "Lime" },
+  { hue: 135, name: "Chartreuse" },
+  { hue: 150, name: "Green" },
+  { hue: 165, name: "Emerald" },
+  { hue: 180, name: "Teal" },
+  { hue: 195, name: "Cyan" },
+  { hue: 210, name: "Sky" },
+  { hue: 225, name: "Azure" },
+  { hue: 240, name: "Blue" },
+  { hue: 255, name: "Cobalt" },
+  { hue: 270, name: "Indigo" },
+  { hue: 285, name: "Violet" },
+  { hue: 300, name: "Purple" },
+  { hue: 315, name: "Plum" },
+  { hue: 330, name: "Magenta" },
+  { hue: 345, name: "Fuchsia" },
+] as const;
+
+export function isValidHue(value: unknown): value is number {
+  return HUES.some(({ hue }) => hue === value);
+}
+
 /** A signed-in user. Stored on the server; each user can only change their own. */
 export interface UserProfile {
   /** Stable ID from the auth proxy. */
   id: string;
   email: string;
   name: string;
-  /** OKLCH hue for this user's cursor. Lightness and chroma come from the client's theme. */
+  /**
+   * The user's color, one of {@link HUES}: an OKLCH hue that colors their app and their cursor as
+   * others see it. Lightness and chroma come from the client's theme.
+   */
   hue: number;
 }
 
@@ -28,8 +66,10 @@ export interface SessionResponse {
   logoutUrl: string | null;
 }
 
+/** The fields to change. */
 export interface UpdateProfileRequest {
-  name: string;
+  name?: string;
+  hue?: number;
 }
 
 /** The trimmed name, or undefined if it's blank or too long. */

@@ -34,6 +34,17 @@ test("shows other people's carets and selections in their color", async ({ brows
   await noteEditor(bob).click();
   await expect(alice.locator(".cm-remote-caret")).toHaveCount(1);
 
+  // Picking a new color recolors your caret for everyone, live.
+  const bobsCaret = alice.locator(".cm-remote-caret");
+  const otherHue = (await hueOf(bob)) === 180 ? "Red" : "Teal";
+  const otherHueValue = otherHue === "Red" ? 30 : 180;
+  await bob.getByRole("link", { name: "Settings" }).click();
+  await bob.getByRole("radio", { name: otherHue }).click();
+  await expect(bob.getByRole("radio", { name: otherHue })).toBeChecked();
+  await bob.goBack();
+  await noteEditor(bob).click();
+  await expect(bobsCaret).toHaveAttribute("style", `--peer-hue: ${otherHueValue};`);
+
   // Leaving the editor hides your caret.
   await titleField(alice).click();
   await expect(alicesCaret).toHaveCount(0);

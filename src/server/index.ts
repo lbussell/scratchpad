@@ -4,12 +4,14 @@ import express, { type Request } from "express";
 import expressStaticGzip from "express-static-gzip";
 import { WebSocketServer } from "ws";
 import {
+  isValidHue,
   MAX_NAME_LENGTH,
   normalizeName,
   PROFILE_API_PATH,
   SESSION_API_PATH,
   type SessionResponse,
   SYNC_PATH,
+  type UpdateProfileRequest,
 } from "../shared/schema.ts";
 import { type Identity, identify, loginRedirectUrl } from "./auth.ts";
 import { config } from "./config.ts";
@@ -72,14 +74,28 @@ app.get(SESSION_API_PATH, async (request, response) => {
 // Only ever changes the requester's own profile.
 app.patch(PROFILE_API_PATH, express.json(), async (request, response) => {
   const body: unknown = request.body;
-  const rawName =
-    typeof body === "object" && body !== null && "name" in body ? body.name : undefined;
-  const name = typeof rawName === "string" ? normalizeName(rawName) : undefined;
-  if (name === undefined) {
-    response.status(400).json({ error: `Name must be 1 to ${MAX_NAME_LENGTH} characters` });
-    return;
+  const field = (key: string): unknown =>
+    typeof body === "object" && body !== null && key in body ? Reflect.get(body, key) : undefined;
+
+  const changes: UpdateProfileRequest = {};
+  const rawName = field("name");
+  if (rawName !== undefined) {
+    const name = typeof rawName === "string" ? normalizeName(rawName) : undefined;
+    if (name === undefined) {
+      response.status(400).json({ error: `Name must be 1 to ${MAX_NAME_LENGTH} characters` });
+      return;
+    }
+    changes.name = name;
   }
-  response.json(await users.rename(identityOf(request), name));
+  const hue = field("hue");
+  if (hue !== undefined) {
+    if (!isValidHue(hue)) {
+      response.status(400).json({ error: "Not one of the available colors" });
+      return;
+    }
+    changes.hue = hue;
+  }
+  response.json(await users.update(identityOf(request), changes));
 });
 
 if (config.isProduction) {

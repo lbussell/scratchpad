@@ -20,12 +20,12 @@ export async function fetchSession(): Promise<SessionResponse> {
   return body;
 }
 
-/** Saves the signed-in user's name, returning their updated profile. */
-export async function saveName(name: string): Promise<UserProfile> {
+/** Saves changes to the signed-in user's profile, returning the updated profile. */
+export async function updateProfile(changes: UpdateProfileRequest): Promise<UserProfile> {
   const response = await fetch(PROFILE_API_PATH, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name } satisfies UpdateProfileRequest),
+    body: JSON.stringify(changes),
   });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok || !isUserProfile(body)) {

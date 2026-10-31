@@ -33,6 +33,9 @@ type CursorPresence = {
 /** Re-resolves peers' cursors against the current document. */
 const refreshCursors = StateEffect.define();
 
+/** Changes how peers draw our cursor, e.g. after we pick a new color. */
+export const setCursorUser = StateEffect.define<CursorUser>();
+
 // Lightness and chroma are theme tokens so every user's color is equally visible; only hue varies.
 const peerColor = (alpha = 1) =>
   `oklch(var(--presence-lightness) var(--presence-chroma) var(--peer-hue) / ${alpha})`;
@@ -92,6 +95,7 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
       #broadcastScheduled = false;
       #hasUnresolvedCursors = false;
       #destroyed = false;
+      #user = user;
 
       constructor(view: EditorView) {
         this.#view = view;
@@ -119,6 +123,13 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
         if (update.selectionSet || update.docChanged || update.focusChanged) {
           this.#scheduleBroadcast();
         }
+        for (const effect of update.transactions.flatMap((tr) => tr.effects)) {
+          if (!effect.is(setCursorUser)) continue;
+          const { id, hue } = effect.value;
+          if (id === this.#user.id && hue === this.#user.hue) continue;
+          this.#user = { id, hue };
+          if (this.#presence.running) this.#presence.broadcast("user", this.#user);
+        }
       }
 
       destroy(): void {
@@ -132,7 +143,7 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
       #start = () => {
         if (this.#presence.running) return;
         this.#lastBroadcast = "null";
-        this.#presence.start({ initialState: { user, selection: null } });
+        this.#presence.start({ initialState: { user: this.#user, selection: null } });
         this.#scheduleBroadcast();
       };
 

@@ -6,12 +6,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Scratchpad</title>
     <script>
-      // Apply the theme before first paint so dark mode doesn't flash light. Keep in sync with
-      // theme.ts, which takes over once the app loads.
+      // Apply the theme and the user's color before first paint, so neither flashes. Keep in sync
+      // with theme.ts, which takes over once the app loads.
       let theme;
+      let hue;
       try {
         theme = localStorage.getItem("theme");
+        hue = localStorage.getItem("hue");
       } catch {}
+      if (hue !== null && hue !== undefined && Number.isFinite(Number(hue))) {
+        document.documentElement.style.setProperty("--hue", hue);
+      }
       const dark =
         theme === "dark" ||
         (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
