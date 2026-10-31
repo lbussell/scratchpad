@@ -1,12 +1,17 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { ConnectionIndicator } from "./components/ConnectionIndicator.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
-import { NoteEditor } from "./components/NoteEditor.tsx";
 import { NoteList } from "./components/NoteList.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
 import { useSelectedNote } from "./hooks/useSelectedNote.ts";
 import type { ServerConnection } from "./serverConnection.ts";
+
+// CodeMirror is a large share of the bundle and isn't needed until a note is open.
+const NoteEditor = lazy(async () => {
+  const module = await import("./components/NoteEditor.tsx");
+  return { default: module.NoteEditor };
+});
 
 interface AppProps {
   rootDocUrl: AutomergeUrl;
