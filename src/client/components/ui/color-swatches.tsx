@@ -41,7 +41,15 @@ function ColorSwatches({
           aria-label={name}
           title={name}
           data-slot="color-swatch"
-          style={{ "--swatch-hue": hue ?? 0, "--swatch-tint": hue === null ? 0 : 1 }}
+          style={
+            hue === null
+              ? {
+                  "--swatch-hue": 0,
+                  "--swatch-tint": 0,
+                  "--swatch-lightness": "var(--neutral-swatch-lightness)",
+                }
+              : { "--swatch-hue": hue }
+          }
           className={cn(
             "flex size-7 items-center justify-center rounded-full bg-swatch text-primary-foreground ring-offset-2 ring-offset-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:ring-2 data-checked:ring-foreground",
             hue === null && "row-span-2 mr-2 self-center",

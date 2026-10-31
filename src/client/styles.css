@@ -82,6 +82,8 @@
   /* The color picker's swatches: brighter than the accent, so the choices read as colors. */
   --swatch-lightness: 0.68;
   --swatch-chroma: 0.116;
+  /* Neutral's swatch shows the charcoal you actually get, so it doesn't read as a dull hue. */
+  --neutral-swatch-lightness: 0.25;
   --secondary: oklch(0.965 calc(0.008 * var(--tint)) var(--hue));
   --secondary-foreground: oklch(0.21 calc(0.015 * var(--tint)) var(--hue));
   --muted: var(--secondary);
@@ -128,6 +130,7 @@
   --primary-foreground: oklch(0.2 calc(0.02 * var(--tint)) var(--hue));
   --swatch-lightness: var(--accent-lightness);
   --swatch-chroma: var(--accent-chroma);
+  --neutral-swatch-lightness: var(--accent-lightness);
   --secondary: oklch(0.27 calc(0.015 * var(--tint)) var(--hue));
   --secondary-foreground: var(--foreground);
   --muted-foreground: oklch(0.71 calc(0.02 * var(--tint)) var(--hue));
