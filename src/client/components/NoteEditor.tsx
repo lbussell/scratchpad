@@ -36,11 +36,13 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
         editorTheme,
         EditorView.lineWrapping,
         placeholder("Start typing…"),
+        EditorView.contentAttributes.of({ "aria-label": "Note" }),
         automergeSyncPlugin({ handle, path: ["text"] }),
       ],
       parent,
     });
-    view.focus();
+    // A new note's title field takes focus instead (see NoteTitle).
+    if (handle.doc().title !== "") view.focus();
     return () => view.destroy();
   }, [handle]);
 

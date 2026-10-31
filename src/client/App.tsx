@@ -11,6 +11,7 @@ import {
 import { ConnectionIndicator } from "./components/ConnectionIndicator.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
 import { NoteList } from "./components/NoteList.tsx";
+import { NoteTitle } from "./components/NoteTitle.tsx";
 import { StatusMessage } from "./components/StatusMessage.tsx";
 import { ThemeToggle } from "./components/ThemeToggle.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
@@ -51,8 +52,9 @@ export function App({ rootDocUrl, serverConnection }: AppProps) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <header className="flex h-12 shrink-0 items-center border-b px-2">
+        <header className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
           <SidebarTrigger />
+          {selected && <NoteTitle key={selected} url={selected} />}
         </header>
         <div className="flex min-h-0 flex-1 flex-col">
           {selected ? (

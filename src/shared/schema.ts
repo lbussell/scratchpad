@@ -17,6 +17,8 @@ export interface RootDoc {
 }
 
 export interface NoteDoc {
+  /** Missing on notes created before titles existed. */
+  title?: string;
   text: string;
   createdAt: number;
 }
