@@ -8,13 +8,13 @@ import "./styles.css";
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Missing #root element");
 
-const repo = createRepo();
+const { repo, serverConnection } = createRepo();
 const rootDocUrl = await fetchRootDocUrl();
 
 createRoot(rootElement).render(
   <StrictMode>
     <RepoContext.Provider value={repo}>
-      <App rootDocUrl={rootDocUrl} />
+      <App rootDocUrl={rootDocUrl} serverConnection={serverConnection} />
     </RepoContext.Provider>
   </StrictMode>,
 );
