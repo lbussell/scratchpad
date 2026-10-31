@@ -32,8 +32,8 @@ const themes: { value: Theme; label: string; icon: ReactNode }[] = [
 ];
 
 /**
- * Settings are rows: a label on the left, the value or control on the right. Text values are
- * muted.
+ * Settings are rows: a label on the left, the value or control on the right. Text values use
+ * regular weight, so they don't compete with the labels.
  */
 export function SettingsPage() {
   return (
@@ -69,7 +69,7 @@ function NameSetting() {
     return (
       <Field orientation="horizontal">
         <FieldTitle>Display name</FieldTitle>
-        <span className="truncate text-sm text-muted-foreground">{user.name}</span>
+        <span className="truncate text-sm">{user.name}</span>
         {/* Full icon size matches the field's height, so the row doesn't jump when editing. */}
         <Button
           variant="ghost"
