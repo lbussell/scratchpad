@@ -1,5 +1,6 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
+import { SquareTextIcon } from "lucide-react";
 import {
   SidebarGroupContent,
   SidebarMenu,
@@ -52,6 +53,7 @@ function NoteListItem({ url, isSelected, onSelect }: NoteListItemProps) {
           setOpenMobile(false);
         }}
       >
+        <SquareTextIcon />
         <span>{note ? noteTitle(note) : "Loading…"}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
