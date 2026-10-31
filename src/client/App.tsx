@@ -4,6 +4,7 @@ import { lazy, Suspense } from "react";
 import {
   Sidebar,
   SidebarFooter,
+  SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { CurrentUser } from "./components/CurrentUser.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
+import { NewNoteButton } from "./components/NewNoteButton.tsx";
 import { NoteList } from "./components/NoteList.tsx";
 import { NoteTitle } from "./components/NoteTitle.tsx";
 import { OfflineBanner } from "./components/OfflineBanner.tsx";
@@ -41,8 +43,15 @@ export function App({ rootDocUrl, serverConnection }: AppProps) {
   return (
     <SidebarProvider className="h-svh">
       <Sidebar>
+        <SidebarHeader className="flex-row items-center justify-between">
+          <h1 className="px-2 font-heading text-base font-semibold">Scratchpad</h1>
+          <NewNoteButton
+            rootDocUrl={rootDocUrl}
+            onCreate={(url) => navigate({ page: "note", url })}
+          />
+        </SidebarHeader>
         {connectionStatus === "offline" && (
-          <div className="p-2 pb-0">
+          <div className="px-2">
             <OfflineBanner />
           </div>
         )}

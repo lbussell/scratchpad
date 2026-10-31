@@ -1,19 +1,16 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
-import { PlusIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { NoteDoc, RootDoc } from "../../shared/schema.ts";
-import { newNote, noteTitle } from "../notes.ts";
+import { noteTitle } from "../notes.ts";
 
 interface NoteListProps {
   rootDocUrl: AutomergeUrl;
@@ -22,43 +19,20 @@ interface NoteListProps {
 }
 
 export function NoteList({ rootDocUrl, selected, onSelect }: NoteListProps) {
-  const repo = useRepo();
-  const [root, changeRoot] = useDocument<RootDoc>(rootDocUrl, { suspense: true });
-
-  const createNote = () => {
-    const handle = repo.create<NoteDoc>(newNote());
-    changeRoot((doc) => {
-      doc.notes.unshift(handle.url);
-    });
-    onSelect(handle.url);
-  };
+  const [root] = useDocument<RootDoc>(rootDocUrl, { suspense: true });
 
   return (
-    <>
-      <SidebarHeader className="flex-row items-center justify-between">
-        <h1 className="px-2 font-heading text-base font-semibold">Notes</h1>
-        <Button size="sm" onClick={createNote}>
-          <PlusIcon data-icon="inline-start" />
-          New note
-        </Button>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {root.notes.map((url) => (
-                <NoteListItem
-                  key={url}
-                  url={url}
-                  isSelected={url === selected}
-                  onSelect={onSelect}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </>
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {root.notes.map((url) => (
+              <NoteListItem key={url} url={url} isSelected={url === selected} onSelect={onSelect} />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
   );
 }
 

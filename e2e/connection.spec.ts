@@ -57,7 +57,9 @@ test("loads notes once the sync server becomes reachable", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("status", { name: "Connection" })).toHaveText(/^Offline/);
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("button", { name: "New note" })).toBeDisabled();
 
   serverDown = false;
-  await expect(page.getByRole("button", { name: "New note" })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "New note" })).toBeEnabled({ timeout: 15_000 });
 });

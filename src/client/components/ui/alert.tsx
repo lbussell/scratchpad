@@ -12,9 +12,15 @@ const alertVariants = cva(
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
         warning: "border-warning/50 bg-warning/15 text-foreground *:[svg]:text-warning",
       },
+      size: {
+        default: "",
+        // For tight spaces like the sidebar: a smaller description under the title.
+        sm: "*:data-[slot=alert-description]:text-xs",
+      },
     },
     defaultVariants: {
       variant: "default",
+      size: "default",
     },
   },
 );
@@ -22,13 +28,14 @@ const alertVariants = cva(
 function Alert({
   className,
   variant,
+  size,
   ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
     <div
       data-slot="alert"
       role="alert"
-      className={cn(alertVariants({ variant }), className)}
+      className={cn(alertVariants({ variant, size }), className)}
       {...props}
     />
   );
