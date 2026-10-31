@@ -14,7 +14,9 @@
         theme = localStorage.getItem("theme");
         hue = localStorage.getItem("hue");
       } catch {}
-      if (hue !== null && hue !== undefined && Number.isFinite(Number(hue))) {
+      if (hue === "neutral") {
+        document.documentElement.style.setProperty("--tint", "0");
+      } else if (hue !== null && hue !== undefined && Number.isFinite(Number(hue))) {
         document.documentElement.style.setProperty("--hue", hue);
       }
       const dark =

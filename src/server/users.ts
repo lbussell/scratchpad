@@ -39,7 +39,7 @@ export class UserStore {
     const existing = this.#users.get(identity.id);
     if (existing?.email === identity.email) return { id: identity.id, ...existing };
 
-    const hues = [...this.#users.values()].map((user) => user.hue);
+    const hues = [...this.#users.values()].map((user) => user.hue).filter((hue) => hue !== null);
     const user: StoredUser = existing
       ? { ...existing, email: identity.email }
       : { email: identity.email, name: defaultName(identity.email), hue: pickHue(hues) };
@@ -48,7 +48,7 @@ export class UserStore {
     return { id: identity.id, ...user };
   }
 
-  /** Changes are applied as given, so validate them first (see normalizeName, isValidHue). */
+  /** Changes are applied as given, so validate them first (see normalizeName, isValidColor). */
   async update(
     identity: Identity,
     changes: Partial<Pick<UserProfile, "name" | "hue">>,
@@ -112,6 +112,6 @@ function isStoredUser(value: unknown): value is StoredUser {
     "name" in value &&
     typeof value.name === "string" &&
     "hue" in value &&
-    typeof value.hue === "number"
+    (value.hue === null || typeof value.hue === "number")
   );
 }

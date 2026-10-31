@@ -15,7 +15,7 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import type { UserProfile } from "../shared/schema.ts";
+import type { Color, UserProfile } from "../shared/schema.ts";
 
 /** What peers need to know about a user to draw their cursor. */
 export type CursorUser = Pick<UserProfile, "id" | "hue">;
@@ -37,8 +37,14 @@ const refreshCursors = StateEffect.define();
 export const setCursorUser = StateEffect.define<CursorUser>();
 
 // Lightness and chroma are theme tokens so every user's color is equally visible; only hue varies.
+// --peer-tint is 0 for Neutral users, whose cursors are gray.
 const peerColor = (alpha = 1) =>
-  `oklch(var(--presence-lightness) var(--presence-chroma) var(--peer-hue) / ${alpha})`;
+  `oklch(var(--presence-lightness) calc(var(--presence-chroma) * var(--peer-tint)) var(--peer-hue) / ${alpha})`;
+
+/** CSS custom properties that color a peer's cursor and selection (see peerColor). */
+function peerColorProperties(hue: Color): string {
+  return `--peer-hue: ${hue ?? 0}; --peer-tint: ${hue === null ? 0 : 1};`;
+}
 
 const theme = EditorView.baseTheme({
   ".cm-remote-selection": { backgroundColor: peerColor(0.25) },
@@ -61,9 +67,9 @@ const theme = EditorView.baseTheme({
 });
 
 class CaretWidget extends WidgetType {
-  readonly hue: number;
+  readonly hue: Color;
 
-  constructor(hue: number) {
+  constructor(hue: Color) {
     super();
     this.hue = hue;
   }
@@ -75,7 +81,7 @@ class CaretWidget extends WidgetType {
   toDOM(): HTMLElement {
     const caret = document.createElement("span");
     caret.className = "cm-remote-caret";
-    caret.style.setProperty("--peer-hue", String(this.hue));
+    caret.setAttribute("style", peerColorProperties(this.hue));
     caret.setAttribute("aria-hidden", "true");
     return caret;
   }
@@ -211,7 +217,7 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
           if (anchor !== head) {
             const mark = Decoration.mark({
               class: "cm-remote-selection",
-              attributes: { style: `--peer-hue: ${hue}` },
+              attributes: { style: peerColorProperties(hue) },
             });
             decorations.push(mark.range(Math.min(anchor, head), Math.max(anchor, head)));
           }
@@ -248,7 +254,6 @@ function isCursorUser(value: unknown): value is CursorUser {
     "id" in value &&
     typeof value.id === "string" &&
     "hue" in value &&
-    typeof value.hue === "number" &&
-    Number.isFinite(value.hue)
+    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
   );
 }

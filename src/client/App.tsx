@@ -27,7 +27,7 @@ import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
 import type { SessionResponse } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
 import type { ServerConnection } from "./serverConnection.ts";
-import { applyHue } from "./theme.ts";
+import { applyColor } from "./theme.ts";
 
 // CodeMirror is a large share of the bundle and isn't needed until a note is open.
 const NoteEditor = lazy(async () => {
@@ -47,7 +47,7 @@ export function App({ session, serverConnection }: AppProps) {
   const [user, setUser] = useState(session.user);
   const currentUser = useMemo(() => ({ user, setUser }), [user]);
   // Before paint, so a changed color never shows the old one.
-  useLayoutEffect(() => applyHue(user.hue), [user.hue]);
+  useLayoutEffect(() => applyColor(user.hue), [user.hue]);
 
   return (
     <CurrentUserContext.Provider value={currentUser}>

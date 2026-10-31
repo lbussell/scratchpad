@@ -1,3 +1,5 @@
+import type { Color } from "../shared/schema.ts";
+
 export type Theme = "light" | "dark" | "system";
 
 // index.html reads the same key to apply the theme before first paint.
@@ -60,11 +62,16 @@ export function subscribeToTheme(listener: () => void): () => void {
 // index.html reads this too, to color the page before the session arrives.
 const HUE_STORAGE_KEY = "hue";
 
-/** Colors the whole app with the user's hue (see styles.css), and remembers it for next time. */
-export function applyHue(hue: number): void {
-  document.documentElement.style.setProperty("--hue", String(hue));
+/**
+ * Colors the whole app with the user's hue, or grays for Neutral (null), and remembers it for
+ * next time. See styles.css.
+ */
+export function applyColor(hue: Color): void {
+  const { style } = document.documentElement;
+  style.setProperty("--tint", hue === null ? "0" : "1");
+  if (hue !== null) style.setProperty("--hue", String(hue));
   try {
-    localStorage.setItem(HUE_STORAGE_KEY, String(hue));
+    localStorage.setItem(HUE_STORAGE_KEY, hue === null ? "neutral" : String(hue));
   } catch {
     // Only the next page load's first paint misses out.
   }

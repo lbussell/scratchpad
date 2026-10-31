@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HUES, isValidHue, MAX_NAME_LENGTH, normalizeName } from "../../shared/schema.ts";
+import { type Color, HUES, MAX_NAME_LENGTH, normalizeName } from "../../shared/schema.ts";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { useTheme } from "../hooks/useTheme.ts";
 import { updateProfile } from "../session.ts";
@@ -140,6 +140,8 @@ function NameSetting() {
   );
 }
 
+const swatches = [{ hue: null, name: "Neutral" }, ...HUES];
+
 /** Your color: it tints the whole app, and others see your cursor in it. Applies as you pick. */
 function ColorSetting() {
   const { user, setUser } = useCurrentUser();
@@ -147,7 +149,7 @@ function ColorSetting() {
   // Only the latest pick's response counts, if several are in flight.
   const latestRequest = useRef(0);
 
-  const choose = async (hue: number) => {
+  const choose = async (hue: Color) => {
     const request = ++latestRequest.current;
     const previous = user;
     setUser({ ...user, hue });
@@ -168,11 +170,9 @@ function ColorSetting() {
       <div className="flex flex-col items-end gap-2">
         <ColorSwatches
           aria-label="Color"
-          swatches={HUES}
+          swatches={swatches}
           value={user.hue}
-          onValueChange={(value) => {
-            if (isValidHue(value)) void choose(value);
-          }}
+          onValueChange={(hue) => void choose(hue)}
         />
         {error !== undefined && <FieldError>{error}</FieldError>}
       </div>

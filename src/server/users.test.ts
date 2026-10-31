@@ -46,6 +46,8 @@ describe("UserStore", () => {
     const store = await UserStore.open(await tempDir());
     const first = await store.ensure({ id: "u1", email: "a@example.com" });
     const second = await store.ensure({ id: "u2", email: "b@example.com" });
+    // New users always get a hue, never Neutral.
+    assert.ok(first.hue !== null && second.hue !== null);
     const distance = Math.abs(first.hue - second.hue);
     assert.equal(Math.min(distance, 360 - distance), 180);
   });
@@ -59,6 +61,7 @@ describe("UserStore", () => {
     assert.equal(renamed.name, "Ada Lovelace");
     const recolored = await store.update(ada, { hue: 30 });
     assert.equal(recolored.hue, 30);
+    assert.equal((await store.update(ada, { hue: null })).hue, null);
     assert.equal(recolored.name, "Ada Lovelace");
     assert.equal((await store.ensure(bob)).hue, bob.hue);
 

@@ -55,9 +55,9 @@ e2e/        Playwright tests
   or nothing (see `useRoute`).
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
-- **Colors.** Each user picks a color (one of 24 OKLCH hues, stored in their profile). It tints
-  the whole app through a single `--hue` CSS variable that every theme token in `styles.css` is
-  built from, and others see their cursor in it. Tokens fix lightness and use the chroma every hue
+- **Colors.** Each user picks a color (one of 24 OKLCH hues, or Neutral, stored in their profile).
+  It tints the whole app through the `--hue` and `--tint` CSS variables that every theme token in
+  `styles.css` is built from (Neutral is `--tint: 0`), and others see their cursor in it. Tokens fix lightness and use the chroma every hue
   can reach, so all colors are equally vivid (a bit more so on P3 screens).
 - **Cursors.** The note editor shows other people's carets and selections, shared through
   Automerge's ephemeral presence messages (relayed by the server, never stored).

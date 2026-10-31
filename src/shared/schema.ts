@@ -42,8 +42,11 @@ export const HUES = [
   { hue: 345, name: "Fuchsia" },
 ] as const;
 
-export function isValidHue(value: unknown): value is number {
-  return HUES.some(({ hue }) => hue === value);
+/** A user's color: one of {@link HUES}, or null for Neutral (grays, no hue). */
+export type Color = number | null;
+
+export function isValidColor(value: unknown): value is Color {
+  return value === null || HUES.some(({ hue }) => hue === value);
 }
 
 /** A signed-in user. Stored on the server; each user can only change their own. */
@@ -53,10 +56,10 @@ export interface UserProfile {
   email: string;
   name: string;
   /**
-   * The user's color, one of {@link HUES}: an OKLCH hue that colors their app and their cursor as
-   * others see it. Lightness and chroma come from the client's theme.
+   * The user's color, one of {@link HUES} or null for Neutral: an OKLCH hue that colors their app
+   * and their cursor as others see it. Lightness and chroma come from the client's theme.
    */
-  hue: number;
+  hue: Color;
 }
 
 export interface SessionResponse {
@@ -69,7 +72,7 @@ export interface SessionResponse {
 /** The fields to change. */
 export interface UpdateProfileRequest {
   name?: string;
-  hue?: number;
+  hue?: Color;
 }
 
 /** The trimmed name, or undefined if it's blank or too long. */
@@ -89,8 +92,7 @@ export function isUserProfile(value: unknown): value is UserProfile {
     "name" in value &&
     typeof value.name === "string" &&
     "hue" in value &&
-    typeof value.hue === "number" &&
-    Number.isFinite(value.hue)
+    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
   );
 }
 

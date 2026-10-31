@@ -51,7 +51,8 @@
 }
 
 /*
- * Every color is a function of --hue, the signed-in user's color (set on <html> at runtime).
+ * Every color is a function of --hue and --tint, the signed-in user's color (set on <html> at
+ * runtime). Neutral is --tint: 0.
  *
  * Colors are perceptually uniform across hues: each token fixes a lightness and uses the highest
  * chroma that *every* hue reaches at that lightness, so no user's color is louder than another's.
@@ -60,34 +61,38 @@
  */
 :root {
   --hue: 250;
+  /* 0 for the Neutral color: every chroma below is multiplied by it. */
+  --tint: 1;
   --vivid: 1;
   color-scheme: light;
-  --background: oklch(0.99 0.004 var(--hue));
-  --foreground: oklch(0.15 0.012 var(--hue));
-  --card: oklch(0.995 0.003 var(--hue));
+  --background: oklch(0.99 calc(0.004 * var(--tint)) var(--hue));
+  --foreground: oklch(0.15 calc(0.012 * var(--tint)) var(--hue));
+  --card: oklch(0.995 calc(0.003 * var(--tint)) var(--hue));
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
   /* The accent color: buttons, focus rings, the color swatches and (as --sidebar) the sidebar. */
   --accent-lightness: 0.5;
   --accent-chroma: 0.085;
-  --primary: oklch(var(--accent-lightness) calc(var(--accent-chroma) * var(--vivid)) var(--hue));
-  --primary-foreground: oklch(0.985 0.007 var(--hue));
+  --primary: oklch(
+    var(--accent-lightness) calc(var(--accent-chroma) * var(--vivid) * var(--tint)) var(--hue)
+  );
+  --primary-foreground: oklch(0.985 calc(0.007 * var(--tint)) var(--hue));
   /* The color picker's swatches: brighter than the accent, so the choices read as colors. */
   --swatch-lightness: 0.68;
   --swatch-chroma: 0.116;
-  --secondary: oklch(0.965 0.008 var(--hue));
-  --secondary-foreground: oklch(0.21 0.015 var(--hue));
+  --secondary: oklch(0.965 calc(0.008 * var(--tint)) var(--hue));
+  --secondary-foreground: oklch(0.21 calc(0.015 * var(--tint)) var(--hue));
   --muted: var(--secondary);
-  --muted-foreground: oklch(0.54 0.02 var(--hue));
+  --muted-foreground: oklch(0.54 calc(0.02 * var(--tint)) var(--hue));
   --accent: var(--secondary);
   --accent-foreground: var(--secondary-foreground);
   --destructive: oklch(0.577 0.245 27.325);
   --success: oklch(0.627 0.17 149);
   --warning: oklch(0.769 0.165 70);
-  --border: oklch(0.92 0.01 var(--hue));
+  --border: oklch(0.92 calc(0.01 * var(--tint)) var(--hue));
   --input: var(--border);
-  --ring: oklch(0.7 calc(0.119 * var(--vivid)) var(--hue));
+  --ring: oklch(0.7 calc(0.119 * var(--vivid) * var(--tint)) var(--hue));
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -96,14 +101,14 @@
   --radius: 0.625rem;
   /* A full-color sidebar. */
   --sidebar: var(--primary);
-  --sidebar-foreground: oklch(0.97 0.014 var(--hue));
-  --sidebar-muted-foreground: oklch(0.88 0.045 var(--hue));
-  --sidebar-primary: oklch(0.97 0.014 var(--hue));
+  --sidebar-foreground: oklch(0.97 calc(0.014 * var(--tint)) var(--hue));
+  --sidebar-muted-foreground: oklch(0.88 calc(0.045 * var(--tint)) var(--hue));
+  --sidebar-primary: oklch(0.97 calc(0.014 * var(--tint)) var(--hue));
   --sidebar-primary-foreground: var(--primary);
-  --sidebar-accent: oklch(0.44 calc(0.075 * var(--vivid)) var(--hue));
-  --sidebar-accent-foreground: oklch(0.985 0.007 var(--hue));
+  --sidebar-accent: oklch(0.44 calc(0.075 * var(--vivid) * var(--tint)) var(--hue));
+  --sidebar-accent-foreground: oklch(0.985 calc(0.007 * var(--tint)) var(--hue));
   --sidebar-border: oklch(1 0 0 / 18%);
-  --sidebar-ring: oklch(0.88 0.045 var(--hue));
+  --sidebar-ring: oklch(0.88 calc(0.045 * var(--tint)) var(--hue));
   /* Other people's cursors, in each one's own hue. */
   --presence-lightness: 0.62;
   --presence-chroma: 0.105;
@@ -111,31 +116,31 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.145 0.008 var(--hue));
-  --foreground: oklch(0.985 0.005 var(--hue));
-  --card: oklch(0.2 0.012 var(--hue));
+  --background: oklch(0.145 calc(0.008 * var(--tint)) var(--hue));
+  --foreground: oklch(0.985 calc(0.005 * var(--tint)) var(--hue));
+  --card: oklch(0.2 calc(0.012 * var(--tint)) var(--hue));
   --accent-lightness: 0.72;
   --accent-chroma: 0.12;
-  --primary-foreground: oklch(0.2 0.02 var(--hue));
+  --primary-foreground: oklch(0.2 calc(0.02 * var(--tint)) var(--hue));
   --swatch-lightness: var(--accent-lightness);
   --swatch-chroma: var(--accent-chroma);
-  --secondary: oklch(0.27 0.015 var(--hue));
+  --secondary: oklch(0.27 calc(0.015 * var(--tint)) var(--hue));
   --secondary-foreground: var(--foreground);
-  --muted-foreground: oklch(0.71 0.02 var(--hue));
+  --muted-foreground: oklch(0.71 calc(0.02 * var(--tint)) var(--hue));
   --destructive: oklch(0.704 0.191 22.216);
   --success: oklch(0.723 0.19 150);
   --warning: oklch(0.828 0.16 84);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 calc(0.102 * var(--vivid)) var(--hue));
+  --ring: oklch(0.6 calc(0.102 * var(--vivid) * var(--tint)) var(--hue));
   /* A dark sidebar with tinted text. */
-  --sidebar: oklch(0.19 0.025 var(--hue));
-  --sidebar-foreground: oklch(0.87 0.05 var(--hue));
-  --sidebar-muted-foreground: oklch(0.7 0.04 var(--hue));
+  --sidebar: oklch(0.19 calc(0.025 * var(--tint)) var(--hue));
+  --sidebar-foreground: oklch(0.87 calc(0.05 * var(--tint)) var(--hue));
+  --sidebar-muted-foreground: oklch(0.7 calc(0.04 * var(--tint)) var(--hue));
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: oklch(0.27 calc(0.04 * var(--vivid)) var(--hue));
-  --sidebar-accent-foreground: oklch(0.97 0.014 var(--hue));
+  --sidebar-accent: oklch(0.27 calc(0.04 * var(--vivid) * var(--tint)) var(--hue));
+  --sidebar-accent-foreground: oklch(0.97 calc(0.014 * var(--tint)) var(--hue));
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: var(--ring);
   --presence-lightness: 0.75;
@@ -148,10 +153,11 @@
   }
 }
 
-/* A color swatch, at the hue in --swatch-hue. */
+/* A color swatch, at the hue in --swatch-hue (--swatch-tint: 0 for Neutral). */
 @utility bg-swatch {
   background-color: oklch(
-    var(--swatch-lightness) calc(var(--swatch-chroma) * var(--vivid)) var(--swatch-hue)
+    var(--swatch-lightness) calc(var(--swatch-chroma) * var(--vivid) * var(--swatch-tint, 1))
+      var(--swatch-hue)
   );
 }
 

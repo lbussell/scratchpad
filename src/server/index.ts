@@ -4,7 +4,7 @@ import express, { type Request } from "express";
 import expressStaticGzip from "express-static-gzip";
 import { WebSocketServer } from "ws";
 import {
-  isValidHue,
+  isValidColor,
   MAX_NAME_LENGTH,
   normalizeName,
   PROFILE_API_PATH,
@@ -89,7 +89,7 @@ app.patch(PROFILE_API_PATH, express.json(), async (request, response) => {
   }
   const hue = field("hue");
   if (hue !== undefined) {
-    if (!isValidHue(hue)) {
+    if (!isValidColor(hue)) {
       response.status(400).json({ error: "Not one of the available colors" });
       return;
     }
