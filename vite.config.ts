@@ -27,12 +27,19 @@ export default defineConfig({
     target: "es2023",
     rolldownOptions: {
       output: {
-        // Large libraries change less often than the app, so give them their own chunks to keep
-        // them cached across deploys (assets are cached as immutable).
+        // Put third-party code loaded at startup in its own chunks, split automatically by size
+        // (bytes of source before minification). Libraries change less often than the app, so
+        // these stay cached across deploys (assets are cached as immutable). `$initial` leaves
+        // lazy-loaded code like the editor in its own chunk.
         codeSplitting: {
           groups: [
-            { name: "react", test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
-            { name: "base-ui", test: /node_modules[\\/]@(base-ui|floating-ui)[\\/]/ },
+            {
+              name: "vendor",
+              test: /node_modules/,
+              tags: ["$initial"],
+              minSize: 100_000,
+              maxSize: 1_000_000,
+            },
           ],
         },
       },
