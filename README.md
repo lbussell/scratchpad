@@ -53,6 +53,9 @@ e2e/        Playwright tests
   `index.html` before first paint.
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
+- **Text fields.** Plain `<input>`s and `<textarea>`s, like the note title, bind to Automerge
+  strings with `useAutomergeText`, which merges edits character by character and keeps the caret
+  in place when someone else edits.
 - **Compression.** `npm run build` writes Brotli and gzip copies of each asset at maximum
   quality, and the production server serves whichever the browser accepts. Hashed files in
   `assets/` are cached as immutable for a year; `index.html` always revalidates.

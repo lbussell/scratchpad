@@ -14,3 +14,5 @@ See README.md for architecture and scripts.
   New colors go in `src/client/styles.css` as theme tokens, not raw Tailwind palette classes.
 - After `shadcn add`, run `npm run check`: generated code sometimes needs small fixes for our
   stricter lint rules. Fix them in the generated file.
+- Bind text inputs to Automerge strings with `useAutomergeText` (or CodeMirror for long-form
+  text), not a plain controlled `value`/`onChange`, which makes the caret jump on remote edits.
