@@ -1,35 +1,52 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { openInNewBrowser } from "./helpers.ts";
+
+const sidebarFooter = (page: Page) => page.locator("[data-slot=sidebar-footer]");
+
+async function rename(page: Page, name: string): Promise<void> {
+  await page.getByRole("button", { name: "Edit name" }).click();
+  await page.getByRole("textbox", { name: "Name" }).fill(name);
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("textbox", { name: "Name" })).toBeHidden();
+}
 
 test("new users are named after their email and can rename themselves", async ({ browser }) => {
   const id = crypto.randomUUID().slice(0, 8);
   const page = await openInNewBrowser(browser, `grace.${id}@example.com`);
-  const sidebar = page.locator("[data-slot=sidebar-footer]");
-  await expect(sidebar).toContainText(`grace.${id}`);
+  await expect(sidebarFooter(page)).toContainText(`grace.${id}`);
 
   await page.getByRole("link", { name: "Settings" }).click();
-  const name = page.getByRole("textbox", { name: "Name" });
-  const save = page.getByRole("button", { name: "Save" });
-  const cancel = page.getByRole("button", { name: "Cancel" });
-  await expect(name).toHaveValue(`grace.${id}`);
-  await expect(save).toBeDisabled();
+  const main = page.getByRole("main");
+  await expect(main).toContainText(`grace.${id}@example.com`);
+  const nameField = page.getByRole("textbox", { name: "Name" });
+  await expect(nameField).toBeHidden();
 
-  await name.fill("   ");
+  // Editing starts with the current name, ready to type over.
+  await page.getByRole("button", { name: "Edit name" }).click();
+  await expect(nameField).toBeFocused();
+  await expect(nameField).toHaveValue(`grace.${id}`);
+
+  await nameField.fill("   ");
   await expect(page.getByText("Enter a name.")).toBeVisible();
-  await expect(save).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
 
-  await name.fill("Grace Hopper");
-  await cancel.click();
-  await expect(name).toHaveValue(`grace.${id}`);
+  // Cancel and Escape both discard the edit.
+  await nameField.fill("Grace Hopper");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(nameField).toBeHidden();
+  await page.getByRole("button", { name: "Edit name" }).click();
+  await nameField.fill("Grace Hopper");
+  await nameField.press("Escape");
+  await expect(nameField).toBeHidden();
+  await expect(sidebarFooter(page)).toContainText(`grace.${id}`);
 
-  await name.fill("Grace Hopper");
-  await save.click();
-  await expect(sidebar).toContainText("Grace Hopper");
-  await expect(sidebar).toContainText("GH");
-  await expect(save).toBeDisabled();
+  await rename(page, "Grace Hopper");
+  await expect(main).toContainText("Grace Hopper");
+  await expect(sidebarFooter(page)).toContainText("Grace Hopper");
+  await expect(sidebarFooter(page)).toContainText("GH");
 
   await page.reload();
-  await expect(name).toHaveValue("Grace Hopper");
+  await expect(main).toContainText("Grace Hopper");
 });
 
 test("renaming yourself doesn't rename anyone else", async ({ browser }) => {
@@ -38,10 +55,9 @@ test("renaming yourself doesn't rename anyone else", async ({ browser }) => {
   const bob = await openInNewBrowser(browser, `bob.${id}@example.com`);
 
   await alice.getByRole("link", { name: "Settings" }).click();
-  await alice.getByRole("textbox", { name: "Name" }).fill("Alice Liddell");
-  await alice.getByRole("button", { name: "Save" }).click();
-  await expect(alice.locator("[data-slot=sidebar-footer]")).toContainText("Alice Liddell");
+  await rename(alice, "Alice Liddell");
+  await expect(sidebarFooter(alice)).toContainText("Alice Liddell");
 
   await bob.reload();
-  await expect(bob.locator("[data-slot=sidebar-footer]")).toContainText(`bob.${id}`);
+  await expect(sidebarFooter(bob)).toContainText(`bob.${id}`);
 });

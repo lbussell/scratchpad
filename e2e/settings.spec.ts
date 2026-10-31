@@ -8,13 +8,15 @@ test("the theme can be changed in settings and is remembered", async ({ page }) 
 
   await page.getByRole("link", { name: "Settings" }).click();
   await expect(page).toHaveURL(/#settings$/);
-  await expect(page.getByRole("radio", { name: "System" })).toBeChecked();
+  const theme = page.getByRole("combobox", { name: "Theme" });
+  await expect(theme).toHaveText("System");
 
-  await page.getByText("Dark", { exact: true }).click();
-  await expect(page.getByRole("radio", { name: "Dark" })).toBeChecked();
+  await theme.click();
+  await page.getByRole("option", { name: "Dark" }).click();
+  await expect(theme).toHaveText("Dark");
   await expect(html).toHaveClass(/dark/);
 
   await page.reload();
   await expect(html).toHaveClass(/dark/);
-  await expect(page.getByRole("radio", { name: "Dark" })).toBeChecked();
+  await expect(theme).toHaveText("Dark");
 });
