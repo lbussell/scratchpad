@@ -72,7 +72,8 @@
   --popover: var(--card);
   --popover-foreground: var(--foreground);
   /* The accent color: buttons, focus rings, the color swatches and (as --sidebar) the sidebar. */
-  --accent-lightness: 0.5;
+  /* 0.5, or for Neutral (--tint: 0) a charcoal 0.25 like shadcn's default buttons. */
+  --accent-lightness: calc(0.25 + 0.25 * var(--tint));
   --accent-chroma: 0.085;
   --primary: oklch(
     var(--accent-lightness) calc(var(--accent-chroma) * var(--vivid) * var(--tint)) var(--hue)
@@ -105,7 +106,10 @@
   --sidebar-muted-foreground: oklch(0.88 calc(0.045 * var(--tint)) var(--hue));
   --sidebar-primary: oklch(0.97 calc(0.014 * var(--tint)) var(--hue));
   --sidebar-primary-foreground: var(--primary);
-  --sidebar-accent: oklch(0.44 calc(0.075 * var(--vivid) * var(--tint)) var(--hue));
+  /* Hovered and active items: a bit darker than the sidebar, or lighter on Neutral's charcoal. */
+  --sidebar-accent: oklch(
+    calc(0.32 + 0.12 * var(--tint)) calc(0.075 * var(--vivid) * var(--tint)) var(--hue)
+  );
   --sidebar-accent-foreground: oklch(0.985 calc(0.007 * var(--tint)) var(--hue));
   --sidebar-border: oklch(1 0 0 / 18%);
   --sidebar-ring: oklch(0.88 calc(0.045 * var(--tint)) var(--hue));
