@@ -1,6 +1,6 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocHandle, useRepo } from "@automerge/automerge-repo-react-hooks";
-import { PlusIcon } from "lucide-react";
+import { SquarePenIcon } from "lucide-react";
 import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import type { NoteDoc, RootDoc } from "../../shared/schema.ts";
@@ -47,8 +47,13 @@ function NewNoteButtonView({
   onClick?: () => void;
 }) {
   return (
-    <Button size="sm" disabled={disabled} onClick={onClick}>
-      <PlusIcon data-icon="inline-start" />
+    <Button
+      variant="ghost"
+      className="mb-2 w-full justify-start"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <SquarePenIcon data-icon="inline-start" />
       New note
     </Button>
   );

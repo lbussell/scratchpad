@@ -1,8 +1,6 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import {
-  SidebarContent,
-  SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
@@ -22,17 +20,13 @@ export function NoteList({ rootDocUrl, selected, onSelect }: NoteListProps) {
   const [root] = useDocument<RootDoc>(rootDocUrl, { suspense: true });
 
   return (
-    <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {root.notes.map((url) => (
-              <NoteListItem key={url} url={url} isSelected={url === selected} onSelect={onSelect} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
+    <SidebarGroupContent>
+      <SidebarMenu>
+        {root.notes.map((url) => (
+          <NoteListItem key={url} url={url} isSelected={url === selected} onSelect={onSelect} />
+        ))}
+      </SidebarMenu>
+    </SidebarGroupContent>
   );
 }
 

@@ -3,7 +3,9 @@ import { NotebookPenIcon, SettingsIcon } from "lucide-react";
 import { lazy, Suspense } from "react";
 import {
   Sidebar,
+  SidebarContent,
   SidebarFooter,
+  SidebarGroup,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -43,33 +45,34 @@ export function App({ rootDocUrl, serverConnection }: AppProps) {
   return (
     <SidebarProvider className="h-svh">
       <Sidebar>
-        <SidebarHeader className="flex-row items-center justify-between">
-          <h1 className="px-2 font-heading text-base font-semibold">Scratchpad</h1>
-          <NewNoteButton
-            rootDocUrl={rootDocUrl}
-            onCreate={(url) => navigate({ page: "note", url })}
-          />
+        <SidebarHeader>
+          <h1 className="p-2 font-heading text-base font-semibold">Scratchpad</h1>
         </SidebarHeader>
-        {connectionStatus === "offline" && (
-          <div className="px-2">
-            <OfflineBanner />
-          </div>
-        )}
-        <DocumentBoundary
-          url={rootDocUrl}
-          fallback={
-            <StatusMessage pending>Couldn’t load notes. Waiting for the server…</StatusMessage>
-          }
-        >
-          <Suspense fallback={<StatusMessage pending>Loading notes…</StatusMessage>}>
-            <NoteList
+        <SidebarContent>
+          {/* Grows so loading and error messages center in the space below the button. */}
+          <SidebarGroup className="flex-1">
+            <NewNoteButton
               rootDocUrl={rootDocUrl}
-              selected={route.page === "note" ? route.url : undefined}
-              onSelect={(url) => navigate({ page: "note", url })}
+              onCreate={(url) => navigate({ page: "note", url })}
             />
-          </Suspense>
-        </DocumentBoundary>
+            <DocumentBoundary
+              url={rootDocUrl}
+              fallback={
+                <StatusMessage pending>Couldn’t load notes. Waiting for the server…</StatusMessage>
+              }
+            >
+              <Suspense fallback={<StatusMessage pending>Loading notes…</StatusMessage>}>
+                <NoteList
+                  rootDocUrl={rootDocUrl}
+                  selected={route.page === "note" ? route.url : undefined}
+                  onSelect={(url) => navigate({ page: "note", url })}
+                />
+              </Suspense>
+            </DocumentBoundary>
+          </SidebarGroup>
+        </SidebarContent>
         <SidebarFooter>
+          {connectionStatus === "offline" && <OfflineBanner />}
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarLink route={{ page: "settings" }} isActive={route.page === "settings"}>
