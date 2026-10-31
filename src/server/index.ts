@@ -35,7 +35,7 @@ if (config.isProduction) {
 } else {
   const { createServer: createViteServer } = await import("vite");
   const vite = await createViteServer({
-    root: config.projectRoot,
+    configFile: path.join(config.projectRoot, "vite.config.ts"),
     appType: "spa",
     server: { middlewareMode: true, hmr: { server: httpServer } },
   });

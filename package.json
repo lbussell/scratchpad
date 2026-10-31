@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch-path=server --watch-path=shared server/index.ts",
+    "dev": "node --watch-path=src/server --watch-path=src/shared src/server/index.ts",
     "build": "tsc -b && vite build",
-    "start": "NODE_ENV=production node server/index.ts",
+    "start": "NODE_ENV=production node src/server/index.ts",
     "typecheck": "tsc -b",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

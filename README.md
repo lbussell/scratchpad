@@ -32,14 +32,15 @@ A pre-commit hook lints and formats staged files and type-checks the project.
 ## Architecture
 
 ```
-shared/   Types and constants used by both sides (document schemas, URL paths)
-server/   Express server: Automerge sync over WebSocket at /sync, root doc URL at /api/root,
-          and the client (Vite middleware in dev, static files from dist/client in prod)
-src/      React client
-e2e/      Playwright tests
+src/
+  client/   React app; also Vite's root (index.html, public/)
+  server/   Express server: Automerge sync over WebSocket at /sync, root doc URL at /api/root,
+            and the client (Vite middleware in dev, static files from dist/client in prod)
+  shared/   Types and constants used by both sides (document schemas, URL paths)
+e2e/        Playwright tests
 ```
 
-- **One server.** `server/index.ts` hosts the Automerge sync server and the web app on the same
+- **One server.** `src/server/index.ts` hosts the Automerge sync server and the web app on the same
   port in both dev and prod, so there's no proxying and no second process.
 - **Root document.** On first start the server creates the root document and saves its URL to
   `data/root-doc-url`. Clients fetch it from `/api/root`.
@@ -47,7 +48,7 @@ e2e/      Playwright tests
   start fresh. Clients cache documents in IndexedDB and sync between tabs over BroadcastChannel.
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
-- **No build step for the server.** Node runs `server/*.ts` directly through type stripping, so
+- **No build step for the server.** Node runs `src/server/*.ts` directly through type stripping, so
   server code must use only erasable TypeScript syntax (enforced by `erasableSyntaxOnly`).
 
 ## Tooling

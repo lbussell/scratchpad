@@ -1,6 +1,6 @@
 import path from "node:path";
 
-const projectRoot = path.resolve(import.meta.dirname, "..");
+const projectRoot = path.resolve(import.meta.dirname, "../..");
 
 export const config = {
   isProduction: process.env["NODE_ENV"] === "production",

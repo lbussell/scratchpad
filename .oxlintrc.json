@@ -60,13 +60,13 @@
   },
   "overrides": [
     {
-      "files": ["server/**", "vite.config.ts"],
+      "files": ["src/server/**", "vite.config.ts"],
       "env": {
         "node": true
       }
     },
     {
-      "files": ["src/**"],
+      "files": ["src/client/**"],
       "env": {
         "browser": true
       }
