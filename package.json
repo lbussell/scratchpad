@@ -29,6 +29,7 @@
     "@codemirror/view": "^6.43.15",
     "codemirror": "^6.0.2",
     "express": "^5.3.0",
+    "express-static-gzip": "^3.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-error-boundary": "^6.1.6",
@@ -49,6 +50,7 @@
     "oxlint-tsgolint": "^7.0.2005",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
+    "vite-plugin-compression2": "^2.5.4",
     "vite-plugin-wasm": "^3.6.0"
   },
   "lint-staged": {

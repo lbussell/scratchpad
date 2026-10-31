@@ -48,6 +48,8 @@ e2e/        Playwright tests
   start fresh. Clients cache documents in IndexedDB and sync between tabs over BroadcastChannel.
 - **Editing.** Notes use CodeMirror with `@automerge/automerge-codemirror`, which turns edits into
   character-level Automerge splices so concurrent typing merges cleanly.
+- **Compression.** `npm run build` writes Brotli and gzip copies of each asset at maximum
+  quality, and the production server serves whichever the browser accepts.
 - **No build step for the server.** Node runs `src/server/*.ts` directly through type stripping, so
   server code must use only erasable TypeScript syntax (enforced by `erasableSyntaxOnly`).
 

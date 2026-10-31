@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import path from "node:path";
 import express from "express";
+import expressStaticGzip from "express-static-gzip";
 import { WebSocketServer } from "ws";
 import { ROOT_DOC_API_PATH, type RootDocResponse, SYNC_PATH } from "../shared/schema.ts";
 import { config } from "./config.ts";
@@ -28,7 +29,14 @@ app.get(ROOT_DOC_API_PATH, (_request, response) => {
 });
 
 if (config.isProduction) {
-  app.use(express.static(config.clientDir, { index: false }));
+  // Serves the .br/.gz files written at build time when the browser accepts them.
+  app.use(
+    expressStaticGzip(config.clientDir, {
+      enableBrotli: true,
+      orderPreference: ["br"],
+      index: false,
+    }),
+  );
   app.get("/{*splat}", (_request, response) => {
     response.sendFile(path.join(config.clientDir, "index.html"));
   });
