@@ -7,6 +7,7 @@
   --border: #e3e3e6;
   --accent: #2f6fed;
   --selected: #e4ecfd;
+  --text-selection: #c8d9fb;
 
   font-family: system-ui, sans-serif;
   line-height: 1.5;
@@ -23,6 +24,7 @@
     --border: #38383c;
     --accent: #6c9cff;
     --selected: #2c3a57;
+    --text-selection: #3b5384;
   }
 }
 
@@ -106,22 +108,8 @@ button {
   overflow: hidden;
 }
 
-.note-editor,
-.note-editor .cm-editor {
+.note-editor {
   height: 100%;
-}
-
-.note-editor .cm-editor {
-  font-size: 1rem;
-}
-
-.note-editor .cm-editor.cm-focused {
-  outline: none;
-}
-
-.note-editor .cm-scroller {
-  padding: 24px 32px;
-  font-family: inherit;
 }
 
 .status {
