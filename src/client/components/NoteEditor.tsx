@@ -1,5 +1,8 @@
-import type { AutomergeUrl } from "@automerge/automerge-repo";
-import { automergeSyncPlugin } from "@automerge/automerge-codemirror";
+import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
+import {
+  automergeSyncPlugin,
+  type DocHandle as EditorHandle,
+} from "@automerge/automerge-codemirror";
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { EditorView, placeholder } from "@codemirror/view";
 import { minimalSetup } from "codemirror";
@@ -33,14 +36,14 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
     if (!parent) return undefined;
 
     const view = new EditorView({
-      doc: handle.doc().text,
+      doc: handle.fullDoc().text,
       extensions: [
         minimalSetup,
         editorTheme,
         EditorView.lineWrapping,
         placeholder("Start typing…"),
         EditorView.contentAttributes.of({ "aria-label": "Note" }),
-        automergeSyncPlugin({ handle, path: ["text"] }),
+        automergeSyncPlugin({ handle: editorHandle(handle), path: ["text"] }),
         remoteCursors(presence, ["text"]),
       ],
       parent,
@@ -60,4 +63,20 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
   }, [handle, presence]);
 
   return <div className="h-full" ref={containerRef} />;
+}
+
+/**
+ * The note's handle as the CodeMirror plugin wants it. automerge-repo 2.6 types `doc()` as possibly
+ * undefined, for handles on part of a document; a handle on a whole document always has one.
+ */
+function editorHandle(handle: DocHandle<NoteDoc>): EditorHandle<unknown> {
+  return {
+    isReady: () => handle.isReady(),
+    doc: () => handle.fullDoc(),
+    change: (callback) => {
+      handle.change(callback);
+    },
+    on: (event, callback) => handle.on(event, callback),
+    off: (event, callback) => handle.off(event, callback),
+  };
 }

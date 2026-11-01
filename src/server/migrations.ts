@@ -45,7 +45,7 @@ export const migrations: readonly Migration[] = [
  */
 export async function migrateRootDoc(repo: Repo, url: AutomergeUrl): Promise<void> {
   const handle = await repo.find<AnyRootDoc>(url);
-  const from = schemaVersionOf(handle.doc());
+  const from = schemaVersionOf(handle.fullDoc());
   if (from > SCHEMA_VERSION) {
     throw new Error(
       `The root document is version ${from}, newer than this server knows (${SCHEMA_VERSION}). ` +

@@ -38,16 +38,15 @@ function RetryWhenReady({ url, onReady, children }: RetryWhenReadyProps) {
   const repo = useRepo();
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { handle } = repo.findWithProgress(url);
-    const retryWhenReady = async () => {
-      await handle.whenReady(["ready"], { signal: controller.signal });
+    // Watches the load rather than awaiting it, since awaiting gives up while it's unavailable.
+    const progress = repo.findWithProgress(url);
+    if (progress.peek().state === "ready") {
       onReady();
-    };
-    retryWhenReady().catch(() => {
-      // Aborted on unmount.
+      return undefined;
+    }
+    return progress.subscribe(({ state }) => {
+      if (state === "ready") onReady();
     });
-    return () => controller.abort();
   }, [repo, url, onReady]);
 
   return children;

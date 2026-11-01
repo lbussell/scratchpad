@@ -153,7 +153,7 @@ export function remoteCursors(presence: NotePresence, path: Prop[]) {
       #cursorAt(position: number): Cursor | null {
         const length = this.#view.state.doc.length;
         try {
-          return getCursor(presence.handle.doc(), path, position >= length ? "end" : position);
+          return getCursor(presence.handle.fullDoc(), path, position >= length ? "end" : position);
         } catch {
           return null;
         }
@@ -205,7 +205,10 @@ export function resolveCursor(
   view: EditorView,
 ): number | undefined {
   try {
-    return Math.min(getCursorPosition(presence.handle.doc(), path, cursor), view.state.doc.length);
+    return Math.min(
+      getCursorPosition(presence.handle.fullDoc(), path, cursor),
+      view.state.doc.length,
+    );
   } catch {
     return undefined;
   }

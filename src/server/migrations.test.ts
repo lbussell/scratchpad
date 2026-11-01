@@ -9,7 +9,7 @@ async function migrated(contents: AnyRootDoc) {
   const repo = new Repo();
   const handle = repo.create<AnyRootDoc>(contents);
   await migrateRootDoc(repo, handle.url);
-  return { doc: handle.doc(), heads: handle.heads(), handle, repo };
+  return { doc: handle.fullDoc(), heads: handle.heads(), handle, repo };
 }
 
 describe("migrations", () => {

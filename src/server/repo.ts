@@ -7,14 +7,9 @@ import type { WebSocketServer } from "ws";
 import { type RootDoc, SCHEMA_VERSION } from "../shared/schema.ts";
 import { migrateRootDoc } from "./migrations.ts";
 
-// The adapter's typings resolve `ws` through isomorphic-ws, which produces a WebSocketServer type
-// that is identical at runtime but structurally incompatible with the one from `ws`.
-type AdapterServer = ConstructorParameters<typeof WebSocketServerAdapter>[0];
-
 export function createSyncRepo(wss: WebSocketServer, dataDir: string): Repo {
   return new Repo({
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- see AdapterServer
-    network: [new WebSocketServerAdapter(wss as unknown as AdapterServer)],
+    network: [new WebSocketServerAdapter(wss)],
     storage: new NodeFSStorageAdapter(path.join(dataDir, "automerge")),
     // The server is a relay: it only sends documents that clients ask for.
     sharePolicy: () => Promise.resolve(false),

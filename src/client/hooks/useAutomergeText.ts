@@ -1,4 +1,10 @@
-import { type DocHandle, type Patch, type Prop, updateText } from "@automerge/automerge-repo";
+import {
+  type DocHandle,
+  type DocHandleChangePayload,
+  type Patch,
+  type Prop,
+  updateText,
+} from "@automerge/automerge-repo";
 import {
   type ChangeEvent,
   useCallback,
@@ -29,7 +35,7 @@ export function useAutomergeText<T extends object>(handle: DocHandle<T>, path: P
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      const onChange = ({ doc, patches }: { doc: T; patches: Patch[] }) => {
+      const onChange = ({ doc, patches }: DocHandleChangePayload<T>) => {
         // Runs before React re-renders, so the element still shows the old text and selection.
         const element = elementRef.current;
         const isRemoteEdit = element !== null && element.value !== readText(doc, path);
@@ -47,7 +53,7 @@ export function useAutomergeText<T extends object>(handle: DocHandle<T>, path: P
     [handle, path],
   );
 
-  const value = useSyncExternalStore(subscribe, () => readText(handle.doc(), path));
+  const value = useSyncExternalStore(subscribe, () => readText(handle.fullDoc(), path));
 
   // Rendering remote text moves the caret to the end, so put it back where it belongs.
   useLayoutEffect(() => {
@@ -62,7 +68,7 @@ export function useAutomergeText<T extends object>(handle: DocHandle<T>, path: P
   const onChange = useCallback(
     (event: ChangeEvent<TextElement>) => {
       const text = event.target.value;
-      handle.change((doc) => {
+      handle.change((doc: T) => {
         writeText(doc, path, text);
       });
     },

@@ -19,7 +19,7 @@ describe("ensureRootDoc", () => {
     const dataDir = await tempDir();
     const repo = openRepo(dataDir);
     const url = await ensureRootDoc(repo, dataDir);
-    const root = (await repo.find<RootDoc>(url)).doc();
+    const root = (await repo.find<RootDoc>(url)).fullDoc();
     assert.deepEqual(root, {
       schemaVersion: SCHEMA_VERSION,
       documents: [],
@@ -41,7 +41,7 @@ describe("ensureRootDoc", () => {
     const repo = openRepo(dataDir);
     const url = await ensureRootDoc(repo, dataDir);
     assert.equal(url, old.url);
-    const root = (await repo.find<RootDoc>(url)).doc();
+    const root = (await repo.find<RootDoc>(url)).fullDoc();
     assert.equal(root.schemaVersion, SCHEMA_VERSION);
     assert.deepEqual(root.documents, [note]);
     await repo.shutdown();
