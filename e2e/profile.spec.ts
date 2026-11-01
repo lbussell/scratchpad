@@ -1,5 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
-import { openInNewBrowser } from "./helpers.ts";
+import { expect, type Page } from "@playwright/test";
+import { openInNewBrowser, test } from "./helpers.ts";
 
 const sidebarFooter = (page: Page) => page.locator("[data-slot=sidebar-footer]");
 

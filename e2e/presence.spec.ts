@@ -1,10 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import {
   createNote,
   identityHeaders,
   noteEditor,
   openInNewBrowser,
+  test,
   titleField,
 } from "./helpers.ts";
 

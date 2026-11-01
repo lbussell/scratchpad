@@ -1,4 +1,25 @@
-import { type Browser, expect, type Page } from "@playwright/test";
+import { test as base, type Browser, expect, type Page } from "@playwright/test";
+
+/**
+ * Closes the contexts each test opens on the shared `browser`. Playwright closes only its own
+ * `context`; the rest would stay open, still syncing, until the worker ends, slowing every later
+ * test (badly on a two-core machine, where there's a single worker).
+ */
+export const test = base.extend<{ closeOpenedContexts: void }>({
+  closeOpenedContexts: [
+    async ({ browser }, use) => {
+      const before = new Set(browser.contexts());
+      await use();
+      await Promise.all(
+        browser
+          .contexts()
+          .filter((context) => !before.has(context))
+          .map((context) => context.close()),
+      );
+    },
+    { auto: true },
+  ],
+});
 
 /** Headers the auth proxy would add for this user (the names playwright.config.ts sets). */
 export function identityHeaders(email: string): Record<string, string> {

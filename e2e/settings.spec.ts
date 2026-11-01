@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { openInNewBrowser } from "./helpers.ts";
+import { expect } from "@playwright/test";
+import { openInNewBrowser, test } from "./helpers.ts";
 
 test("the theme can be changed in settings and is remembered", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });

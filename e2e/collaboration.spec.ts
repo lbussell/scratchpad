@@ -1,5 +1,5 @@
-import { expect, test } from "@playwright/test";
-import { createNote, noteEditor, openInNewBrowser, titleField } from "./helpers.ts";
+import { expect } from "@playwright/test";
+import { createNote, noteEditor, openInNewBrowser, test, titleField } from "./helpers.ts";
 
 test("notes and edits sync between separate browsers via the server", async ({ browser }) => {
   const alice = await openInNewBrowser(browser);
