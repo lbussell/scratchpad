@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { Repo } from "@automerge/automerge-repo";
 import { NodeFSStorageAdapter } from "@automerge/automerge-repo-storage-nodefs";
-import type { RootDoc } from "../shared/schema.ts";
+import { type RootDoc, SCHEMA_VERSION } from "../shared/schema.ts";
 import { ensureRootDoc } from "./repo.ts";
 
 const tempDir = () => mkdtemp(path.join(tmpdir(), "scratchpad-repo-"));
@@ -15,16 +15,21 @@ function openRepo(dataDir: string): Repo {
 }
 
 describe("ensureRootDoc", () => {
-  it("creates a root document with room for folders", async () => {
+  it("creates a root document at the latest version", async () => {
     const dataDir = await tempDir();
     const repo = openRepo(dataDir);
     const url = await ensureRootDoc(repo, dataDir);
     const root = (await repo.find<RootDoc>(url)).doc();
-    assert.deepEqual(root, { documents: [], positions: {}, folders: {} });
+    assert.deepEqual(root, {
+      schemaVersion: SCHEMA_VERSION,
+      documents: [],
+      positions: {},
+      folders: {},
+    });
     await repo.shutdown();
   });
 
-  it("renames notes to documents and adds folders, in a root document from before them", async () => {
+  it("migrates the root document it finds, and keeps it", async () => {
     const dataDir = await tempDir();
     const before = openRepo(dataDir);
     const note = before.create({ text: "" }).url;
@@ -37,7 +42,8 @@ describe("ensureRootDoc", () => {
     const url = await ensureRootDoc(repo, dataDir);
     assert.equal(url, old.url);
     const root = (await repo.find<RootDoc>(url)).doc();
-    assert.deepEqual(root, { documents: [note], positions: {}, folders: {} });
+    assert.equal(root.schemaVersion, SCHEMA_VERSION);
+    assert.deepEqual(root.documents, [note]);
     await repo.shutdown();
   });
 });

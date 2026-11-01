@@ -31,10 +31,12 @@ import { DocumentTree } from "./components/DocumentTree/DocumentTree.tsx";
 import { NotePeers } from "./components/NotePeers.tsx";
 import { NoteTitle } from "./components/NoteTitle.tsx";
 import { OfflineBanner } from "./components/OfflineBanner.tsx";
+import { SchemaMismatch } from "./components/SchemaMismatch.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
 import { StatusMessage } from "./components/StatusMessage.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
 import { useDownloadAllDocuments } from "./hooks/useDownloadAllDocuments.ts";
+import { useSchemaCompatibility } from "./hooks/useSchemaCompatibility.ts";
 import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
 import type { FolderId, RootDoc, SessionResponse, UserProfile } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
@@ -65,16 +67,22 @@ export function App({ session, isSavedSession, serverConnection }: AppProps) {
   // Before paint, so a changed color never shows the old one.
   useLayoutEffect(() => applyColor(user.hue), [user.hue]);
   useRefreshSavedSession(isSavedSession && connectionStatus === "online", setUser);
-  useDownloadAllDocuments(rootDocUrl, connectionStatus === "online");
+  const compatibility = useSchemaCompatibility(rootDocUrl);
+  const isCompatible = compatibility === "compatible";
+  useDownloadAllDocuments(rootDocUrl, isCompatible && connectionStatus === "online");
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
-      <Workspace
-        rootDocUrl={rootDocUrl}
-        logoutUrl={logoutUrl}
-        route={route}
-        connectionStatus={connectionStatus}
-      />
+      {isCompatible ? (
+        <Workspace
+          rootDocUrl={rootDocUrl}
+          logoutUrl={logoutUrl}
+          route={route}
+          connectionStatus={connectionStatus}
+        />
+      ) : (
+        <SchemaMismatch status={compatibility} />
+      )}
     </CurrentUserContext.Provider>
   );
 }

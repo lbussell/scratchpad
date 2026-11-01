@@ -109,20 +109,38 @@ export function isUserProfile(value: unknown): value is UserProfile {
   );
 }
 
+/**
+ * The version of the root document's shape that this code reads and writes. The server migrates
+ * older root documents up to it at startup (`src/server/migrations.ts`); clients won't touch a root
+ * document of any other version. Raise it, with a migration, when a change to RootDoc would trip up
+ * code that expects the old shape.
+ */
+export const SCHEMA_VERSION = 1;
+
+/** A root document's version. Root documents from before versions existed are version 0. */
+export function schemaVersionOf(root: object): number {
+  return "schemaVersion" in root && typeof root.schemaVersion === "number" ? root.schemaVersion : 0;
+}
+
+/**
+ * Whether code at SCHEMA_VERSION can use a root document: "newer" if the code is out of date
+ * (reload to update it), "older" if the server hasn't migrated the document yet.
+ */
+export function schemaCompatibility(root: object): "compatible" | "newer" | "older" {
+  const version = schemaVersionOf(root);
+  if (version === SCHEMA_VERSION) return "compatible";
+  return version > SCHEMA_VERSION ? "newer" : "older";
+}
+
 /** The single document every user shares. It indexes all the other documents. */
 export interface RootDoc {
-  /**
-   * Every document, newest first. Where each one sits in the sidebar is in `positions`. Root
-   * documents from before folders called this `notes`; the server renames it at startup.
-   */
+  /** Which version of this shape the document has: {@link SCHEMA_VERSION}, once migrated. */
+  schemaVersion: number;
+  /** Every document, newest first. Where each one sits in the sidebar is in `positions`. */
   documents: AutomergeUrl[];
-  /**
-   * Where each document and folder sits in the sidebar. Documents missing here show at the top,
-   * newest first. The server adds this to root documents from before folders.
-   */
-  positions?: Record<SidebarItemId, SidebarPosition>;
-  /** The server adds this to root documents from before folders. */
-  folders?: Record<FolderId, Folder>;
+  /** Where each document and folder sits in the sidebar. */
+  positions: Record<SidebarItemId, SidebarPosition>;
+  folders: Record<FolderId, Folder>;
 }
 
 /** Folder IDs have a prefix, so they can't be mistaken for document URLs. */

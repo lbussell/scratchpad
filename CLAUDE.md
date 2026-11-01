@@ -17,8 +17,7 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
 - One server process hosts sync and the web app on one port in both dev and prod.
 - On first start the server creates the root document, which lists every document, and saves its
   URL to `data/root-doc-url`. Each document is its own Automerge document. Clients get the root URL
-  and their identity from `/api/session`. The server brings older root documents up to date at
-  startup (`migrateRootDoc` in `src/server/repo.ts`).
+  and their identity from `/api/session`.
 - Code that works with any document says "document"; code for a particular type of document names
   the type. So far the only type is the note (`NoteDoc`: a title and text).
 - The root document's `positions` (a parent folder and a fractional index for each document and
@@ -80,7 +79,12 @@ checkout, so the two never share documents.
 - Server code runs directly under Node type stripping: use `.ts` import extensions and only
   erasable syntax (no enums, namespaces, or parameter properties).
 - Document shapes live in `src/shared/schema.ts`. Automerge docs are long-lived, so treat schema
-  changes as migrations: existing documents won't have new fields.
+  changes as migrations: existing documents won't have new fields. Prefer new fields that code can
+  do without (optional, with a fallback). When the root document's shape changes in a way old code
+  can't handle (a rename, a new required field), add a step to `src/server/migrations.ts` and
+  raise `SCHEMA_VERSION`. The server migrates at startup, before clients connect; clients refuse a
+  root document of another version, asking to reload or waiting for the server
+  (`src/client/components/SchemaMismatch.tsx`). Never edit a deployed migration.
 - Mutate Automerge documents only inside `changeDoc`/`handle.change` callbacks.
 - UI uses shadcn/ui (Base UI). Add components with `npx shadcn add <name>` rather than writing
   them by hand, and import them via `@/components/ui/...` so @shadcn/lint recognizes them. Need a

@@ -30,8 +30,7 @@ export function newFolderId(): FolderId {
  * before folders) show first, newest first.
  */
 export function buildTree(root: RootDoc): TreeNode[] {
-  const folders = root.folders ?? {};
-  const positions = root.positions ?? {};
+  const { folders, positions } = root;
 
   const children = new Map<FolderId | null, SidebarItemId[]>();
   for (const [id, parent] of effectiveParents(root)) {
@@ -71,8 +70,7 @@ export function buildTree(root: RootDoc): TreeNode[] {
  * documents, so folders are always at the top level.
  */
 function effectiveParents(root: RootDoc): Map<SidebarItemId, FolderId | null> {
-  const folders = root.folders ?? {};
-  const positions = root.positions ?? {};
+  const { folders, positions } = root;
   const parents = new Map<SidebarItemId, FolderId | null>();
   for (const url of root.documents) {
     const parent = positions[url]?.parent ?? null;
@@ -161,14 +159,14 @@ export function dropFor(
 export function addDocument(doc: RootDoc, url: AutomergeUrl, parent: FolderId | null = null): void {
   const order = orderFor(doc, url, { parent, at: "start" });
   doc.documents.unshift(url);
-  positionsOf(doc)[url] = { parent, order };
+  doc.positions[url] = { parent, order };
 }
 
 /** Adds a new, unnamed folder at the top. */
 export function addFolder(doc: RootDoc, id: FolderId): void {
   const order = orderFor(doc, id, { parent: null, at: "start" });
-  foldersOf(doc)[id] = { name: "" };
-  positionsOf(doc)[id] = { parent: null, order };
+  doc.folders[id] = { name: "" };
+  doc.positions[id] = { parent: null, order };
 }
 
 /** Whether `id` can go in `parent`: folders only hold documents. */
@@ -179,10 +177,10 @@ export function canPlace(id: SidebarItemId, parent: FolderId | null): boolean {
 /** Moves an item. Does nothing if that would put a folder in a folder. */
 export function moveItem(doc: RootDoc, id: SidebarItemId, placement: Placement): void {
   const { parent } = placement;
-  if (!canPlace(id, parent) || (parent !== null && !doc.folders?.[parent])) return;
+  if (!canPlace(id, parent) || (parent !== null && !doc.folders[parent])) return;
   const order = orderFor(doc, id, placement);
   // A new object, so concurrent moves of the same item don't mix their parents and orders.
-  positionsOf(doc)[id] = { parent, order };
+  doc.positions[id] = { parent, order };
 }
 
 /** Deletes an item and, for a folder, everything in it. Returns the documents it deleted. */
@@ -191,9 +189,9 @@ export function deleteItem(doc: RootDoc, id: SidebarItemId): AutomergeUrl[] {
   if (!node) return [];
   const deletedDocuments: AutomergeUrl[] = [];
   for (const inner of walk([node])) {
-    if (doc.positions?.[inner.id]) delete doc.positions[inner.id];
+    delete doc.positions[inner.id];
     if (inner.kind === "folder") {
-      if (doc.folders?.[inner.id]) delete doc.folders[inner.id];
+      delete doc.folders[inner.id];
     } else {
       for (let index = doc.documents.indexOf(inner.id); index !== -1;) {
         doc.documents.splice(index, 1);
@@ -238,7 +236,7 @@ function storeSiblingPositions(
   parent: FolderId | null,
   siblings: readonly SidebarItemId[],
 ): string[] {
-  const positions = positionsOf(doc);
+  const { positions } = doc;
   // Siblings without a position show first, so they go before the first one with a position.
   const unplaced = siblings.filter((sibling) => !positions[sibling]);
   if (unplaced.length > 0) {
@@ -268,16 +266,6 @@ function orderBetween(orders: readonly string[], index: number): string {
     after = orders.find((order) => order > before) ?? null;
   }
   return generateKeyBetween(before, after);
-}
-
-function positionsOf(doc: RootDoc): Record<SidebarItemId, SidebarPosition> {
-  doc.positions ??= {};
-  return doc.positions;
-}
-
-function foldersOf(doc: RootDoc): NonNullable<RootDoc["folders"]> {
-  doc.folders ??= {};
-  return doc.folders;
 }
 
 function compareStrings(a: string, b: string): number {
