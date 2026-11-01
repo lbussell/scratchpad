@@ -11,12 +11,13 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { FolderIcon, SquareTextIcon } from "lucide-react";
+import { FolderIcon } from "lucide-react";
 import { useState } from "react";
 import type { AutomergeUrl } from "@automerge/automerge-repo";
-import type { NoteDoc, SidebarItemId } from "../../../shared/schema.ts";
-import { noteTitle } from "../../notes.ts";
+import type { BaseDoc, SidebarItemId } from "../../../shared/schema.ts";
+import { documentTitle } from "../../documentTypes.ts";
 import { type Drop, dropFor, findNode, type TreeNode } from "../../tree.ts";
+import { DocumentIcon } from "../DocumentIcon.tsx";
 import { type DropTarget, DropTargetContext, folderName, useTree } from "./context.ts";
 
 /** Lets the rows inside be dragged onto each other to rearrange the tree. */
@@ -130,16 +131,18 @@ function DragPreview({ node }: { node: TreeNode }) {
           <span className="truncate">{folderName(node.name)}</span>
         </>
       ) : (
-        <>
-          <SquareTextIcon />
-          <DocumentName url={node.id} />
-        </>
+        <DocumentLabel url={node.id} />
       )}
     </div>
   );
 }
 
-function DocumentName({ url }: { url: AutomergeUrl }) {
-  const [note] = useDocument<NoteDoc>(url);
-  return <span className="truncate">{note ? noteTitle(note) : "Loading…"}</span>;
+function DocumentLabel({ url }: { url: AutomergeUrl }) {
+  const [doc] = useDocument<BaseDoc>(url);
+  return (
+    <>
+      <DocumentIcon doc={doc} />
+      <span className="truncate">{doc ? documentTitle(doc) : "Loading…"}</span>
+    </>
+  );
 }

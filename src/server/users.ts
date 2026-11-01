@@ -1,6 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { HUES, isPeerStyle, MAX_NAME_LENGTH, type UserProfile } from "../shared/schema.ts";
+import {
+  HUES,
+  isPeerStyle,
+  MAX_NAME_LENGTH,
+  type Person,
+  type UserProfile,
+} from "../shared/schema.ts";
 import type { Identity } from "./auth.ts";
 
 type StoredUser = Omit<UserProfile, "id">;
@@ -52,6 +58,13 @@ export class UserStore {
     this.#users.set(identity.id, user);
     await this.#save();
     return { id: identity.id, ...user };
+  }
+
+  /** Everyone who has signed in, by name. Only what others may see of them. */
+  list(): Person[] {
+    return [...this.#users]
+      .map(([id, { name, hue }]) => ({ id, name, hue }))
+      .toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
   /**

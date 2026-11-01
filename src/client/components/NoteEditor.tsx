@@ -49,7 +49,7 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
       parent,
     });
     // The editor loads lazily, so don't steal focus from someone already typing, e.g. in the
-    // title of a new note (see NoteTitle).
+    // title of a new note (see DocumentTitle).
     const { activeElement } = document;
     const isTyping =
       activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;

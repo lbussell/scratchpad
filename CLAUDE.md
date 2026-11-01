@@ -19,7 +19,13 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
   URL to `data/root-doc-url`. Each document is its own Automerge document. Clients get the root URL
   and their identity from `/api/session`.
 - Code that works with any document says "document"; code for a particular type of document names
-  the type. So far the only type is the note (`NoteDoc`: a title and text).
+  the type. The types are the note (`NoteDoc`) and the to-do list (`TodoListDoc`). Each is
+  registered in `src/client/documentTypes.ts` (name, icon, how to create one, its editor), which
+  says how to add another. Every document has a `type` (notes from before types existed have none)
+  and a `title`, which the header edits whatever the type.
+- To-do lists keep their to-dos in a map by ID, so edits find the right one while others change
+  the list. Grouping by due date and snoozing are in `src/client/todos.ts`. Assignees are user IDs;
+  `/api/users` lists everyone who has signed in, saved on each device for offline use.
 - The root document's `positions` (a parent folder and a fractional index for each document and
   folder) and `folders` arrange the sidebar. Change them only through `src/client/tree.ts`, which
   also tidies what concurrent moves leave behind. Deleting a document only removes it from the root

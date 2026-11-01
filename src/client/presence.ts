@@ -8,11 +8,11 @@ import {
 } from "@automerge/automerge-repo";
 import type { EditorView } from "@codemirror/view";
 import { useEffect, useSyncExternalStore } from "react";
-import type { NoteDoc, RootDoc, UserProfile } from "../shared/schema.ts";
+import { isPerson, type NoteDoc, type Person, type RootDoc } from "../shared/schema.ts";
 import { useCurrentUser } from "./hooks/useCurrentUser.ts";
 
 /** What others need to know about someone to show them. */
-export type PresenceUser = Pick<UserProfile, "id" | "name" | "hue">;
+export type PresenceUser = Person;
 
 /** Someone who has the same document open, in another tab or browser. */
 export interface Peer<State> {
@@ -302,7 +302,7 @@ export class NotePresence extends SharedPresence<NoteState> {
 
 function isNoteState(value: unknown): value is NoteState {
   if (typeof value !== "object" || value === null) return false;
-  if (!("user" in value) || !isPresenceUser(value.user) || !("selection" in value)) return false;
+  if (!("user" in value) || !isPerson(value.user) || !("selection" in value)) return false;
   const { selection } = value;
   const isSelection =
     selection === null ||
@@ -380,7 +380,7 @@ function isWorkspaceState(value: unknown): value is WorkspaceState {
     typeof value === "object" &&
     value !== null &&
     "user" in value &&
-    isPresenceUser(value.user) &&
+    isPerson(value.user) &&
     "document" in value &&
     (value.document === null || isValidAutomergeUrl(value.document))
   );
@@ -417,19 +417,6 @@ export function useWorkspacePresence(
 }
 
 // Helpers ----------------------------------------------------------------------------------------
-
-function isPresenceUser(value: unknown): value is PresenceUser {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string" &&
-    "name" in value &&
-    typeof value.name === "string" &&
-    "hue" in value &&
-    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
-  );
-}
 
 /** One presence per document, however many components use it. */
 function cachedPresence<Handle extends object, P>(

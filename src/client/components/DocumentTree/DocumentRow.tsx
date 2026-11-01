@@ -1,15 +1,15 @@
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
-import { SquareTextIcon } from "lucide-react";
-import { PeerAvatar, PeerAvatarGroup } from "@/components/ui/peer";
+import { PeerAvatarGroup } from "@/components/ui/peer";
 import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import type { NoteDoc } from "../../../shared/schema.ts";
-import { initials } from "../../initials.ts";
-import { noteTitle } from "../../notes.ts";
+import type { BaseDoc } from "../../../shared/schema.ts";
+import { documentTitle } from "../../documentTypes.ts";
+import { DocumentIcon } from "../DocumentIcon.tsx";
+import { PeopleHere } from "../PeopleHere.tsx";
 import type { WorkspacePeer } from "../../presence.ts";
 import { type DocumentNode, useTree } from "./context.ts";
 import { DropIndicator } from "./dragAndDrop.tsx";
@@ -17,13 +17,12 @@ import { useDragRow } from "./useDragRow.ts";
 import { ItemActions } from "./ItemActions.tsx";
 
 const nobody: readonly WorkspacePeer[] = [];
-const names = new Intl.ListFormat(undefined, { type: "conjunction" });
 
 export function DocumentRow({ node }: { node: DocumentNode }) {
   const url = node.id;
   const { selected, onSelect, peers: allPeers } = useTree();
   // Not suspending, so one slow document doesn't block the whole list.
-  const [note] = useDocument<NoteDoc>(url);
+  const [doc] = useDocument<BaseDoc>(url);
   const { setOpenMobile } = useSidebar();
   const { ref, listeners, isDragging, dropPosition } = useDragRow(url);
   const isSelected = url === selected;
@@ -41,8 +40,8 @@ export function DocumentRow({ node }: { node: DocumentNode }) {
           setOpenMobile(false);
         }}
       >
-        <SquareTextIcon />
-        <span className="flex-1 truncate">{note ? noteTitle(note) : "Loading…"}</span>
+        <DocumentIcon doc={doc} />
+        <span className="flex-1 truncate">{doc ? documentTitle(doc) : "Loading…"}</span>
         {/* Makes room for the avatars, which sit outside the button so they aren't part of its
             name. */}
         {peers.length > 0 && (
@@ -64,16 +63,7 @@ export function DocumentRow({ node }: { node: DocumentNode }) {
 function PeersBadge({ peers }: { peers: readonly WorkspacePeer[] }) {
   return (
     <SidebarMenuBadge>
-      <PeerAvatarGroup>
-        {peers.map(({ peerId, user }) => (
-          <PeerAvatar key={peerId} hue={user.hue} aria-hidden="true">
-            {initials(user.name)}
-          </PeerAvatar>
-        ))}
-      </PeerAvatarGroup>
-      <span className="sr-only">
-        {names.format(peers.map(({ user }) => user.name))} {peers.length === 1 ? "is" : "are"} here
-      </span>
+      <PeopleHere peers={peers} />
     </SidebarMenuBadge>
   );
 }

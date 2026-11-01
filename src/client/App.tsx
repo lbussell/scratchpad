@@ -1,15 +1,6 @@
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { NotebookPenIcon, SettingsIcon } from "lucide-react";
-import {
-  Fragment,
-  lazy,
-  Suspense,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -26,10 +17,10 @@ import {
 } from "@/components/ui/sidebar";
 import { CurrentUser } from "./components/CurrentUser.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
+import { DocumentTitle } from "./components/DocumentTitle.tsx";
+import { DocumentPeers, DocumentView } from "./components/DocumentView.tsx";
 import { NewMenu } from "./components/NewMenu.tsx";
 import { DocumentTree } from "./components/DocumentTree/DocumentTree.tsx";
-import { NotePeers } from "./components/NotePeers.tsx";
-import { NoteTitle } from "./components/NoteTitle.tsx";
 import { OfflineBanner } from "./components/OfflineBanner.tsx";
 import { SchemaMismatch } from "./components/SchemaMismatch.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
@@ -40,16 +31,12 @@ import { useSchemaCompatibility } from "./hooks/useSchemaCompatibility.ts";
 import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
 import type { FolderId, RootDoc, SessionResponse, UserProfile } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
-import { useWorkspacePresence } from "./presence.ts";
+import { useWorkspacePresence, type WorkspacePeer } from "./presence.ts";
 import type { ServerConnection } from "./serverConnection.ts";
 import { fetchSession } from "./session.ts";
 import { applyColor } from "./theme.ts";
 
-// CodeMirror is a large share of the bundle and isn't needed until a note is open.
-const NoteEditor = lazy(async () => {
-  const module = await import("./components/NoteEditor.tsx");
-  return { default: module.NoteEditor };
-});
+const nobody: readonly WorkspacePeer[] = [];
 
 interface AppProps {
   session: SessionResponse;
@@ -132,7 +119,7 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
             <SidebarGroup className="flex-1">
               <NewMenu
                 rootDocUrl={rootDocUrl}
-                onCreateNote={(url) => navigate({ page: "document", url })}
+                onCreateDocument={(url) => navigate({ page: "document", url })}
                 onCreateFolder={setRenaming}
               />
               <DocumentBoundary
@@ -175,8 +162,8 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
             <SidebarTrigger />
             {route.page === "document" && (
               <Fragment key={route.url}>
-                <NoteTitle url={route.url} />
-                <NotePeers url={route.url} />
+                <DocumentTitle url={route.url} />
+                <DocumentPeers url={route.url} peers={peers.get(route.url) ?? nobody} />
               </Fragment>
             )}
             {route.page === "settings" && <h2 className="px-2.5 text-sm font-medium">Settings</h2>}
@@ -208,7 +195,7 @@ function MainPane({ route, logoutUrl }: { route: Route; logoutUrl: string | null
       }
     >
       <Suspense fallback={<StatusMessage pending>Loading document…</StatusMessage>}>
-        <NoteEditor key={route.url} url={route.url} />
+        <DocumentView key={route.url} url={route.url} />
       </Suspense>
     </DocumentBoundary>
   );

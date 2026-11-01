@@ -13,6 +13,7 @@ import {
   type SessionResponse,
   SYNC_PATH,
   type UpdateProfileRequest,
+  USERS_API_PATH,
 } from "../shared/schema.ts";
 import { type Identity, identify, loginRedirectUrl } from "./auth.ts";
 import { config } from "./config.ts";
@@ -70,6 +71,13 @@ app.get(SESSION_API_PATH, async (request, response) => {
     logoutUrl: config.auth.logoutUrl ?? null,
   };
   response.json(session);
+});
+
+// So people can assign each other to-dos.
+app.get(USERS_API_PATH, async (request, response) => {
+  // Includes the requester, even before they've loaded a session.
+  await users.ensure(identityOf(request));
+  response.json(users.list());
 });
 
 // Only ever changes the requester's own profile.

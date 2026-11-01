@@ -5,7 +5,6 @@ import {
   FolderInputIcon,
   MoreHorizontalIcon,
   PencilIcon,
-  SquarePenIcon,
   Trash2Icon,
 } from "lucide-react";
 import { useRef } from "react";
@@ -20,12 +19,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuAction } from "@/components/ui/sidebar";
+import { documentTypeIds, documentTypes } from "../../documentTypes.ts";
 import { findSiblings, type TreeNode } from "../../tree.ts";
 import { type FolderNode, folderName, useTree } from "./context.ts";
 
 /** A row's "⋯" menu. Everything dragging does, it does too, for keyboards and screen readers. */
 export function ItemActions({ node }: { node: TreeNode }) {
-  const { tree, move, createNote, onRenamingChange, requestDelete } = useTree();
+  const { tree, move, createDocument, onRenamingChange, requestDelete } = useTree();
   const location = findSiblings(tree, node.id);
   const parent = location?.parent ?? null;
   const siblings = location?.siblings ?? [];
@@ -37,8 +37,8 @@ export function ItemActions({ node }: { node: TreeNode }) {
     node.kind === "document"
       ? tree.filter((item): item is FolderNode => item.kind === "folder" && item.id !== parent)
       : [];
-  // The menu puts focus back on its button as it closes, which would take it from a new note's
-  // title or a folder name being edited.
+  // The menu puts focus back on its button as it closes, which would take it from a new
+  // document's title or a folder name being edited.
   const movesFocus = useRef(false);
 
   return (
@@ -65,15 +65,21 @@ export function ItemActions({ node }: { node: TreeNode }) {
       >
         {node.kind === "folder" && (
           <>
-            <DropdownMenuItem
-              onClick={() => {
-                movesFocus.current = true;
-                createNote(node.id);
-              }}
-            >
-              <SquarePenIcon />
-              New note
-            </DropdownMenuItem>
+            {documentTypeIds.map((type) => {
+              const { name, icon: Icon } = documentTypes[type];
+              return (
+                <DropdownMenuItem
+                  key={type}
+                  onClick={() => {
+                    movesFocus.current = true;
+                    createDocument(node.id, type);
+                  }}
+                >
+                  <Icon />
+                  New {name.toLowerCase()}
+                </DropdownMenuItem>
+              );
+            })}
             <DropdownMenuItem
               onClick={() => {
                 movesFocus.current = true;

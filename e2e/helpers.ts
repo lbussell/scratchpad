@@ -68,8 +68,13 @@ export const newButton = (page: Page) => page.getByRole("button", { name: "New",
 
 /** Creates a note at the top of the sidebar; the title field has focus first. */
 export async function createNote(page: Page, title: string): Promise<void> {
+  await createDocument(page, "Note", title);
+}
+
+/** Creates a document of the type the New menu calls `type`, and types its title. */
+export async function createDocument(page: Page, type: string, title: string): Promise<void> {
   await newButton(page).click();
-  await page.getByRole("menuitem", { name: "Note" }).click();
+  await page.getByRole("menuitem", { name: type }).click();
   await expect(titleField(page)).toBeFocused();
   await page.keyboard.type(title);
 }

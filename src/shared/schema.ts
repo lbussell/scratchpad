@@ -9,6 +9,9 @@ export const SESSION_API_PATH = "/api/session";
 /** HTTP endpoint for the signed-in user's profile. PATCH it with an {@link UpdateProfileRequest}. */
 export const PROFILE_API_PATH = "/api/me";
 
+/** HTTP endpoint that lists everyone who has signed in, as {@link Person}s. */
+export const USERS_API_PATH = "/api/users";
+
 export const MAX_NAME_LENGTH = 80;
 
 /**
@@ -70,6 +73,22 @@ export interface UserProfile {
   hue: Color;
   /** How this user sees other people in a note. */
   peerStyle: PeerStyle;
+}
+
+/** What anyone may see of a user: enough to show them, as in presence or a to-do's assignee. */
+export type Person = Pick<UserProfile, "id" | "name" | "hue">;
+
+export function isPerson(value: unknown): value is Person {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "hue" in value &&
+    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
+  );
 }
 
 export interface SessionResponse {
@@ -167,10 +186,48 @@ export function isFolderId(id: string): id is FolderId {
   return id.startsWith("folder:");
 }
 
-/** A note: a title and text. So far the only type of document. */
-export interface NoteDoc {
-  /** Missing on notes created before titles existed. */
+/**
+ * The types of document. Each document says which it is in its `type` field, except notes from
+ * before there were types, which have none. The client's registry of types is
+ * `src/client/documentTypes.ts`.
+ */
+export const DOCUMENT_TYPES = ["note", "todo-list"] as const;
+export type DocumentTypeId = (typeof DOCUMENT_TYPES)[number];
+
+/**
+ * What every document has, whatever its type. `type` is a string rather than a DocumentTypeId
+ * because a newer client may have created a type this code doesn't know.
+ */
+export interface BaseDoc {
+  type?: string;
+  /** Edited in place above the document. Missing on notes created before titles existed. */
   title?: string;
-  text: string;
   createdAt: number;
+}
+
+/** A note: a title and text. */
+export interface NoteDoc extends BaseDoc {
+  /** Missing on notes created before there were types of document. */
+  type?: "note";
+  text: string;
+}
+
+/** A to-do list. */
+export interface TodoListDoc extends BaseDoc {
+  type: "todo-list";
+  title: string;
+  /** Keyed by ID, so edits find the right to-do even while others are added or deleted. */
+  todos: Record<string, Todo>;
+}
+
+export interface Todo {
+  text: string;
+  /** Milliseconds since the epoch. Open to-dos are listed in the order they were added. */
+  createdAt: number;
+  /** The ID of the user it's assigned to, if anyone. */
+  assignee?: string;
+  /** The day it's due, as `YYYY-MM-DD`, if any. A day rather than a time: "due Friday". */
+  due?: string;
+  /** When it was marked done, in milliseconds since the epoch. Missing while it's open. */
+  doneAt?: number;
 }

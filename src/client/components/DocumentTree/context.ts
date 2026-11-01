@@ -1,6 +1,6 @@
 import type { AutomergeUrl, DocHandle } from "@automerge/automerge-repo";
 import { createContext, use } from "react";
-import type { FolderId, RootDoc, SidebarItemId } from "../../../shared/schema.ts";
+import type { DocumentTypeId, FolderId, RootDoc, SidebarItemId } from "../../../shared/schema.ts";
 import type { WorkspacePeer } from "../../presence.ts";
 import type { Drop, Placement, TreeNode } from "../../tree.ts";
 
@@ -21,8 +21,8 @@ export interface TreeContextValue {
   isCollapsed: (id: FolderId) => boolean;
   setCollapsed: (id: FolderId, collapsed: boolean) => void;
   move: (id: SidebarItemId, placement: Placement) => void;
-  /** Creates a note in the folder and opens it. */
-  createNote: (parent: FolderId) => void;
+  /** Creates a document in the folder and opens it. */
+  createDocument: (parent: FolderId, type: DocumentTypeId) => void;
   /** Asks to confirm, then deletes. */
   requestDelete: (node: TreeNode) => void;
 }

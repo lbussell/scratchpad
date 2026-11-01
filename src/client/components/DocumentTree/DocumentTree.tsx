@@ -2,9 +2,9 @@ import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocHandle, useDocument, useRepo } from "@automerge/automerge-repo-react-hooks";
 import { useCallback, useMemo, useState } from "react";
 import { SidebarGroupContent, SidebarMenu } from "@/components/ui/sidebar";
-import type { FolderId, NoteDoc, RootDoc, SidebarItemId } from "../../../shared/schema.ts";
+import type { DocumentTypeId, FolderId, RootDoc, SidebarItemId } from "../../../shared/schema.ts";
+import { documentTypes } from "../../documentTypes.ts";
 import { useCollapsedFolders } from "../../hooks/useCollapsedFolders.ts";
-import { newNote } from "../../notes.ts";
 import type { WorkspacePeer } from "../../presence.ts";
 import {
   addDocument,
@@ -59,12 +59,12 @@ export function DocumentTree({
     [root, setCollapsed],
   );
 
-  const createNote = useCallback(
-    (parent: FolderId) => {
-      const note = repo.create<NoteDoc>(newNote());
-      root.change((doc) => addDocument(doc, note.url, parent));
+  const createDocument = useCallback(
+    (parent: FolderId, type: DocumentTypeId) => {
+      const handle = repo.create(documentTypes[type].create());
+      root.change((doc) => addDocument(doc, handle.url, parent));
       setCollapsed(parent, false);
-      onSelect(note.url);
+      onSelect(handle.url);
     },
     [repo, root, setCollapsed, onSelect],
   );
@@ -81,7 +81,7 @@ export function DocumentTree({
       isCollapsed,
       setCollapsed,
       move,
-      createNote,
+      createDocument,
       requestDelete: setPendingDelete,
     }),
     [
@@ -95,7 +95,7 @@ export function DocumentTree({
       isCollapsed,
       setCollapsed,
       move,
-      createNote,
+      createDocument,
     ],
   );
 

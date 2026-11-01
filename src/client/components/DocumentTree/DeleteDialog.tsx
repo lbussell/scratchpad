@@ -10,8 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { NoteDoc } from "../../../shared/schema.ts";
-import { noteTitle } from "../../notes.ts";
+import type { BaseDoc } from "../../../shared/schema.ts";
+import { documentTitle } from "../../documentTypes.ts";
 import type { TreeNode } from "../../tree.ts";
 import { folderName } from "./context.ts";
 
@@ -44,11 +44,11 @@ export function DeleteDialog({ node, onConfirm, onCancel }: DeleteDialogProps) {
 }
 
 function DeleteDialogText({ node }: { node: TreeNode }) {
-  const [note] = useDocument<NoteDoc>(node.kind === "document" ? node.id : undefined);
+  const [doc] = useDocument<BaseDoc>(node.kind === "document" ? node.id : undefined);
   if (node.kind === "document") {
     return (
       <>
-        <AlertDialogTitle>Delete “{note ? noteTitle(note) : "this document"}”?</AlertDialogTitle>
+        <AlertDialogTitle>Delete “{doc ? documentTitle(doc) : "this document"}”?</AlertDialogTitle>
         <AlertDialogDescription>It will be deleted for everyone.</AlertDialogDescription>
       </>
     );

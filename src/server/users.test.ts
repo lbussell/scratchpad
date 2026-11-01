@@ -80,6 +80,21 @@ describe("UserStore", () => {
     assert.equal(updated.email, "new@example.com");
     assert.equal(updated.name, "old");
   });
+
+  it("lists everyone by name, without their emails or settings", async () => {
+    const store = await UserStore.open(await tempDir());
+    await store.ensure({ id: "u1", email: "zed@example.com" });
+    await store.update({ id: "u2", email: "ada@example.com" }, { hue: 30 });
+    assert.deepEqual(Object.keys(store.list()[0] ?? {}).toSorted(), ["hue", "id", "name"]);
+    assert.deepEqual(
+      store.list().map(({ id, name }) => [id, name]),
+      [
+        ["u2", "ada"],
+        ["u1", "zed"],
+      ],
+    );
+    assert.equal(store.list()[0]?.hue, 30);
+  });
 });
 
 describe("peer style", () => {
