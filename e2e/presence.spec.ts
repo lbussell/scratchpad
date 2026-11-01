@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { createNote, noteEditor, openInNewBrowser, titleField } from "./helpers.ts";
+import {
+  createNote,
+  identityHeaders,
+  noteEditor,
+  openInNewBrowser,
+  titleField,
+} from "./helpers.ts";
 
 /** The cursor hue the server assigned to this page's user. */
 async function hueOf(page: Page): Promise<unknown> {
@@ -49,4 +55,69 @@ test("shows other people's carets and selections in their color", async ({ brows
   // Leaving the editor hides your caret.
   await titleField(alice).click();
   await expect(alicesCaret).toHaveCount(0);
+});
+
+test("shows who has each note open, in the sidebar", async ({ browser }) => {
+  const aliceName = `alice-${crypto.randomUUID()}`;
+  const alice = await openInNewBrowser(browser, `${aliceName}@example.com`);
+  const bob = await openInNewBrowser(browser);
+  const first = `Note ${crypto.randomUUID()}`;
+  const second = `Note ${crypto.randomUUID()}`;
+  await createNote(bob, first);
+  await createNote(bob, second);
+
+  const noteRow = (title: string) =>
+    bob.getByRole("listitem").filter({ has: bob.getByRole("button", { name: title }) });
+  await alice.getByRole("button", { name: first }).click();
+  await expect(noteRow(first)).toContainText(`${aliceName} is here`);
+  await expect(noteRow(second)).not.toContainText(aliceName);
+
+  await alice.getByRole("button", { name: second }).click();
+  await expect(noteRow(second)).toContainText(`${aliceName} is here`);
+  await expect(noteRow(first)).not.toContainText(aliceName);
+
+  // Settings isn't a note.
+  await alice.getByRole("link", { name: "Settings" }).click();
+  await expect(noteRow(second)).not.toContainText(aliceName);
+});
+
+const people = (page: Page) => page.getByRole("list", { name: "People in this note" });
+
+/** SLEEP_AFTER_MS in src/client/presence.ts. */
+const SLEEP_AFTER_MS = 30_000;
+
+test("shows eyes beside the title for everyone else in the note", async ({ browser }) => {
+  const aliceName = `alice-${crypto.randomUUID()}`;
+  const alice = await openInNewBrowser(browser, `${aliceName}@example.com`);
+  const bobName = `bob-${crypto.randomUUID()}`;
+  const bobsContext = await browser.newContext({
+    extraHTTPHeaders: identityHeaders(`${bobName}@example.com`),
+  });
+  // Bob's clock is fake, to fast-forward through Alice going idle.
+  await bobsContext.clock.install();
+  const bob = await bobsContext.newPage();
+  await bob.goto("/");
+  const title = `Note ${crypto.randomUUID()}`;
+  await createNote(alice, title);
+  await noteEditor(alice).pressSequentially("Hello world");
+  await bob.getByRole("button", { name: title }).click();
+
+  await expect(people(bob).getByRole("listitem")).toHaveText([aliceName]);
+  await expect(people(alice).getByRole("listitem")).toHaveText([bobName]);
+
+  // Alice's eyes look towards her mouse: the start of the text is left of and below them.
+  await noteEditor(alice).hover({ position: { x: 2, y: 8 } });
+  const alicesEyes = bob.locator('[data-slot="peer-eyes"]');
+  await expect(alicesEyes).toHaveAttribute("style", /--eyes-x: -\d/);
+  await expect(alicesEyes).toHaveAttribute("style", /--eyes-y: \d/);
+
+  await bob.clock.fastForward(SLEEP_AFTER_MS + 1000);
+  await expect(people(bob).getByRole("listitem")).toHaveText([`${aliceName} (idle)`]);
+  // Doing anything wakes her up.
+  await noteEditor(alice).click();
+  await expect(people(bob).getByRole("listitem")).toHaveText([aliceName]);
+
+  // Leaving the note takes her eyes with her.
+  await alice.getByRole("link", { name: "Settings" }).click();
+  await expect(people(bob)).toHaveCount(0);
 });

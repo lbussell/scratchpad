@@ -1,11 +1,4 @@
-import {
-  type Cursor,
-  type DocHandle,
-  getCursor,
-  getCursorPosition,
-  Presence,
-  type Prop,
-} from "@automerge/automerge-repo";
+import { type Cursor, getCursor, getCursorPosition, type Prop } from "@automerge/automerge-repo";
 import { type Range, StateEffect } from "@codemirror/state";
 import {
   Decoration,
@@ -15,26 +8,11 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import type { Color, UserProfile } from "../shared/schema.ts";
-
-/** What peers need to know about a user to draw their cursor. */
-export type CursorUser = Pick<UserProfile, "id" | "hue">;
-
-/** What each peer shares about itself, over Automerge's ephemeral messages. */
-type CursorPresence = {
-  user: CursorUser;
-  /**
-   * Automerge cursors rather than indexes, so they point at the same characters on every peer
-   * even while edits are in flight. Null while the editor doesn't have focus.
-   */
-  selection: { anchor: Cursor; head: Cursor } | null;
-};
+import type { Color } from "../shared/schema.ts";
+import type { NotePresence } from "./presence.ts";
 
 /** Re-resolves peers' cursors against the current document. */
 const refreshCursors = StateEffect.define();
-
-/** Changes how peers draw our cursor, e.g. after we pick a new color. */
-export const setCursorUser = StateEffect.define<CursorUser>();
 
 // Lightness and chroma are theme tokens so every user's color is equally visible; only hue varies.
 // --peer-tint is 0 for Neutral users, whose cursors are gray.
@@ -89,30 +67,28 @@ class CaretWidget extends WidgetType {
 
 /**
  * Shows other people's carets and selections in the text at `path`, each in their user's color,
- * and shares ours with them.
+ * and shares our caret and the character under our mouse with them.
  */
-export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: CursorUser) {
+export function remoteCursors(presence: NotePresence, path: Prop[]) {
   const plugin = ViewPlugin.fromClass(
     class {
       decorations: DecorationSet = Decoration.none;
       readonly #view: EditorView;
-      readonly #presence = new Presence<CursorPresence>({ handle });
-      #lastBroadcast = "null";
+      readonly #unsubscribe: () => void;
       #broadcastScheduled = false;
       #hasUnresolvedCursors = false;
       #destroyed = false;
-      #user = user;
+      /** Where the mouse is, while it's over the editor. */
+      #mouse: { x: number; y: number } | null = null;
 
       constructor(view: EditorView) {
         this.#view = view;
-        this.#start();
-        for (const event of ["update", "snapshot", "goodbye", "pruning"] as const) {
-          this.#presence.on(event, this.#refresh);
-        }
-        // Say goodbye when the page goes away so our caret disappears right away, rather than
-        // when peers time us out. Pages can come back from the back/forward cache.
-        window.addEventListener("pagehide", this.#stop);
-        window.addEventListener("pageshow", this.#start);
+        this.#unsubscribe = presence.subscribe(this.#refresh);
+        view.scrollDOM.addEventListener("scroll", this.#sharePointer, { passive: true });
+        view.dom.addEventListener("mousemove", this.#onMouseMove);
+        view.dom.addEventListener("mouseleave", this.#onMouseLeave);
+        this.#scheduleBroadcast();
+        queueMicrotask(this.#refresh);
       }
 
       update(update: ViewUpdate): void {
@@ -129,36 +105,36 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
         if (update.selectionSet || update.docChanged || update.focusChanged) {
           this.#scheduleBroadcast();
         }
-        for (const effect of update.transactions.flatMap((tr) => tr.effects)) {
-          if (!effect.is(setCursorUser)) continue;
-          const { id, hue } = effect.value;
-          if (id === this.#user.id && hue === this.#user.hue) continue;
-          this.#user = { id, hue };
-          if (this.#presence.running) this.#presence.broadcast("user", this.#user);
-        }
       }
 
       destroy(): void {
         this.#destroyed = true;
-        this.#stop();
-        this.#presence.removeAllListeners();
-        window.removeEventListener("pagehide", this.#stop);
-        window.removeEventListener("pageshow", this.#start);
+        this.#unsubscribe();
+        this.#view.scrollDOM.removeEventListener("scroll", this.#sharePointer);
+        this.#view.dom.removeEventListener("mousemove", this.#onMouseMove);
+        this.#view.dom.removeEventListener("mouseleave", this.#onMouseLeave);
+        presence.setSelection(null);
+        presence.setPointer(null);
       }
-
-      #start = () => {
-        if (this.#presence.running) return;
-        this.#lastBroadcast = "null";
-        this.#presence.start({ initialState: { user: this.#user, selection: null } });
-        this.#scheduleBroadcast();
-      };
-
-      #stop = () => {
-        if (this.#presence.running) this.#presence.stop();
-      };
 
       #refresh = () => {
         if (!this.#destroyed) this.#view.dispatch({ effects: refreshCursors.of(null) });
+      };
+
+      #onMouseMove = (event: MouseEvent) => {
+        this.#mouse = { x: event.clientX, y: event.clientY };
+        this.#sharePointer();
+      };
+
+      #onMouseLeave = () => {
+        this.#mouse = null;
+        this.#sharePointer();
+      };
+
+      /** Also runs on scroll, which moves the text under a still mouse. */
+      #sharePointer = () => {
+        const position = this.#mouse && this.#view.posAtCoords(this.#mouse, false);
+        presence.setPointer(position === null ? null : this.#cursorAt(position));
       };
 
       #scheduleBroadcast(): void {
@@ -167,53 +143,41 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
         // Wait until the edit that triggered this has reached the Automerge document.
         queueMicrotask(() => {
           this.#broadcastScheduled = false;
-          if (this.#destroyed || !this.#presence.running) return;
-          const selection = this.#view.hasFocus ? this.#localSelection() : null;
-          const serialized = JSON.stringify(selection);
-          if (serialized === this.#lastBroadcast) return;
-          this.#lastBroadcast = serialized;
-          this.#presence.broadcast("selection", selection);
+          if (this.#destroyed) return;
+          presence.setSelection(this.#view.hasFocus ? this.#localSelection() : null);
+          // Typing moves the text under the mouse.
+          if (this.#mouse) this.#sharePointer();
         });
       }
 
-      #localSelection(): CursorPresence["selection"] {
-        const doc = handle.doc();
+      #cursorAt(position: number): Cursor | null {
         const length = this.#view.state.doc.length;
-        const { anchor, head } = this.#view.state.selection.main;
         try {
-          return {
-            anchor: getCursor(doc, path, anchor >= length ? "end" : anchor),
-            head: getCursor(doc, path, head >= length ? "end" : head),
-          };
+          return getCursor(presence.handle.doc(), path, position >= length ? "end" : position);
         } catch {
           return null;
         }
       }
 
-      #resolvePeerCursors(): DecorationSet {
-        const doc = handle.doc();
-        const length = this.#view.state.doc.length;
-        const resolve = (cursor: Cursor) => {
-          try {
-            return Math.min(getCursorPosition(doc, path, cursor), length);
-          } catch {
-            // Points at text we haven't received yet.
-            return undefined;
-          }
-        };
+      #localSelection() {
+        const { anchor, head } = this.#view.state.selection.main;
+        const anchorCursor = this.#cursorAt(anchor);
+        const headCursor = this.#cursorAt(head);
+        return anchorCursor && headCursor ? { anchor: anchorCursor, head: headCursor } : null;
+      }
 
+      #resolvePeerCursors(): DecorationSet {
         this.#hasUnresolvedCursors = false;
         const decorations: Range<Decoration>[] = [];
-        for (const { value } of Object.values(this.#presence.getPeerStates().value)) {
-          // Peers' state comes off the network, so check it.
-          if (!isCursorPresence(value) || !value.selection) continue;
-          const anchor = resolve(value.selection.anchor);
-          const head = resolve(value.selection.head);
+        for (const { state } of presence.peers()) {
+          if (!state.selection) continue;
+          const anchor = resolveCursor(presence, path, state.selection.anchor, this.#view);
+          const head = resolveCursor(presence, path, state.selection.head, this.#view);
           if (anchor === undefined || head === undefined) {
             this.#hasUnresolvedCursors = true;
             continue;
           }
-          const { hue } = value.user;
+          const { hue } = state.user;
           if (anchor !== head) {
             const mark = Decoration.mark({
               class: "cm-remote-selection",
@@ -233,27 +197,16 @@ export function remoteCursors(handle: DocHandle<unknown>, path: Prop[], user: Cu
   return [plugin, theme];
 }
 
-function isCursorPresence(value: unknown): value is CursorPresence {
-  if (typeof value !== "object" || value === null) return false;
-  if (!("user" in value) || !isCursorUser(value.user) || !("selection" in value)) return false;
-  const { selection } = value;
-  return (
-    selection === null ||
-    (typeof selection === "object" &&
-      "anchor" in selection &&
-      typeof selection.anchor === "string" &&
-      "head" in selection &&
-      typeof selection.head === "string")
-  );
-}
-
-function isCursorUser(value: unknown): value is CursorUser {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string" &&
-    "hue" in value &&
-    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
-  );
+/** Where a peer's cursor is in the editor's text, or undefined if we don't have that text yet. */
+export function resolveCursor(
+  presence: NotePresence,
+  path: Prop[],
+  cursor: Cursor,
+  view: EditorView,
+): number | undefined {
+  try {
+    return Math.min(getCursorPosition(presence.handle.doc(), path, cursor), view.state.doc.length);
+  } catch {
+    return undefined;
+  }
 }

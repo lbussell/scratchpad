@@ -1,5 +1,6 @@
+import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { NotebookPenIcon, SettingsIcon } from "lucide-react";
-import { lazy, Suspense, useLayoutEffect, useMemo, useState } from "react";
+import { Fragment, lazy, Suspense, useLayoutEffect, useMemo, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,14 +19,16 @@ import { CurrentUser } from "./components/CurrentUser.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
 import { NewNoteButton } from "./components/NewNoteButton.tsx";
 import { NoteList } from "./components/NoteList.tsx";
+import { NotePeers } from "./components/NotePeers.tsx";
 import { NoteTitle } from "./components/NoteTitle.tsx";
 import { OfflineBanner } from "./components/OfflineBanner.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
 import { StatusMessage } from "./components/StatusMessage.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
 import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
-import type { SessionResponse } from "../shared/schema.ts";
+import type { RootDoc, SessionResponse } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
+import { useWorkspacePresence } from "./presence.ts";
 import type { ServerConnection } from "./serverConnection.ts";
 import { applyColor } from "./theme.ts";
 
@@ -51,6 +54,30 @@ export function App({ session, serverConnection }: AppProps) {
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
+      <Workspace
+        rootDocUrl={rootDocUrl}
+        logoutUrl={logoutUrl}
+        route={route}
+        connectionStatus={connectionStatus}
+      />
+    </CurrentUserContext.Provider>
+  );
+}
+
+interface WorkspaceProps {
+  rootDocUrl: SessionResponse["rootDocUrl"];
+  logoutUrl: string | null;
+  route: Route;
+  connectionStatus: ReturnType<typeof useConnectionStatus>;
+}
+
+function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: WorkspaceProps) {
+  const openNote = route.page === "note" ? route.url : null;
+  // Tells everyone which note we have open; the sidebar shows where everyone else is.
+  const peers = useWorkspacePresence(useDocHandle<RootDoc>(rootDocUrl), openNote);
+
+  return (
+    <>
       <SidebarProvider className="h-svh">
         <Sidebar>
           <SidebarHeader>
@@ -76,6 +103,7 @@ export function App({ session, serverConnection }: AppProps) {
                     rootDocUrl={rootDocUrl}
                     selected={route.page === "note" ? route.url : undefined}
                     onSelect={(url) => navigate({ page: "note", url })}
+                    peers={peers}
                   />
                 </Suspense>
               </DocumentBoundary>
@@ -97,7 +125,12 @@ export function App({ session, serverConnection }: AppProps) {
         <SidebarInset className="min-w-0">
           <header className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
             <SidebarTrigger />
-            {route.page === "note" && <NoteTitle key={route.url} url={route.url} />}
+            {route.page === "note" && (
+              <Fragment key={route.url}>
+                <NoteTitle url={route.url} />
+                <NotePeers url={route.url} />
+              </Fragment>
+            )}
             {route.page === "settings" && <h2 className="px-2.5 text-sm font-medium">Settings</h2>}
           </header>
           <div className="flex min-h-0 flex-1 flex-col">
@@ -105,7 +138,7 @@ export function App({ session, serverConnection }: AppProps) {
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </CurrentUserContext.Provider>
+    </>
   );
 }
 

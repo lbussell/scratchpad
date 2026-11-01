@@ -26,6 +26,8 @@
   --color-border: var(--border);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-presence-foreground: var(--presence-foreground);
+  --color-presence-eye: var(--presence-eye);
   --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -48,6 +50,22 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --animate-doze: doze 2.4s ease-out infinite;
+
+  /* A "z" drifting up from someone who has dozed off. */
+  @keyframes doze {
+    0% {
+      opacity: 0;
+      translate: 0 3px;
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      translate: 4px -6px;
+    }
+  }
 }
 
 /*
@@ -118,6 +136,9 @@
   /* Other people's cursors, in each one's own hue. */
   --presence-lightness: 0.62;
   --presence-chroma: 0.105;
+  /* Text and eyes on someone's color (see bg-peer). */
+  --presence-foreground: oklch(0.99 0 0);
+  --presence-eye: oklch(1 0 0);
 }
 
 .dark {
@@ -152,6 +173,7 @@
   --sidebar-ring: var(--ring);
   --presence-lightness: 0.75;
   --presence-chroma: 0.125;
+  --presence-foreground: oklch(0.2 0 0);
 }
 
 @media (color-gamut: p3) {
@@ -165,6 +187,13 @@
   background-color: oklch(
     var(--swatch-lightness) calc(var(--swatch-chroma) * var(--vivid) * var(--swatch-tint, 1))
       var(--swatch-hue)
+  );
+}
+
+/* Someone else's color, as their caret shows it: --peer-hue, and --peer-tint 0 for Neutral. */
+@utility bg-peer {
+  background-color: oklch(
+    var(--presence-lightness) calc(var(--presence-chroma) * var(--peer-tint, 1)) var(--peer-hue)
   );
 }
 

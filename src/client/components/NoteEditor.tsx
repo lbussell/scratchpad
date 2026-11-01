@@ -3,10 +3,10 @@ import { automergeSyncPlugin } from "@automerge/automerge-codemirror";
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { EditorView, placeholder } from "@codemirror/view";
 import { minimalSetup } from "codemirror";
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { NoteDoc } from "../../shared/schema.ts";
-import { useCurrentUser } from "../hooks/useCurrentUser.ts";
-import { remoteCursors, setCursorUser } from "../remoteCursors.ts";
+import { useNotePresence } from "../presence.ts";
+import { remoteCursors } from "../remoteCursors.ts";
 
 // CodeMirror's default theme hardcodes light-mode colors and is injected at runtime with
 // selectors plain CSS can't easily beat, so override it here using the shadcn theme variables.
@@ -26,10 +26,7 @@ const editorTheme = EditorView.theme({
 export function NoteEditor({ url }: { url: AutomergeUrl }) {
   const handle = useDocHandle<NoteDoc>(url, { suspense: true });
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const { id: userId, hue } = useCurrentUser().user;
-  // The editor is built once per note; later color changes go through setCursorUser below.
-  const initialCursorUser = useEffectEvent(() => ({ id: userId, hue }));
+  const presence = useNotePresence(handle);
 
   useEffect(() => {
     const parent = containerRef.current;
@@ -44,7 +41,7 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
         placeholder("Start typing…"),
         EditorView.contentAttributes.of({ "aria-label": "Note" }),
         automergeSyncPlugin({ handle, path: ["text"] }),
-        remoteCursors(handle, ["text"], initialCursorUser()),
+        remoteCursors(presence, ["text"]),
       ],
       parent,
     });
@@ -54,16 +51,13 @@ export function NoteEditor({ url }: { url: AutomergeUrl }) {
     const isTyping =
       activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement;
     if (!isTyping) view.focus();
-    viewRef.current = view;
+    // So the eyes beside the title can find positions in the text on screen.
+    presence.setView(view);
     return () => {
-      viewRef.current = null;
+      presence.setView(null);
       view.destroy();
     };
-  }, [handle]);
-
-  useEffect(() => {
-    viewRef.current?.dispatch({ effects: setCursorUser.of({ id: userId, hue }) });
-  }, [userId, hue]);
+  }, [handle, presence]);
 
   return <div className="h-full" ref={containerRef} />;
 }

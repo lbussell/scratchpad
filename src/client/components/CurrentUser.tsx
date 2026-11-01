@@ -2,6 +2,7 @@ import { LogOutIcon } from "lucide-react";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
+import { initials } from "../initials.ts";
 import type { ConnectionStatus } from "../serverConnection.ts";
 
 const statusLabels: Record<ConnectionStatus, string> = {
@@ -9,15 +10,6 @@ const statusLabels: Record<ConnectionStatus, string> = {
   online: "Online",
   offline: "Offline",
 };
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((part) => part.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 interface CurrentUserProps {
   status: ConnectionStatus;

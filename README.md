@@ -59,8 +59,13 @@ e2e/        Playwright tests
   It tints the whole app through the `--hue` and `--tint` CSS variables that every theme token in
   `styles.css` is built from (Neutral is `--tint: 0`), and others see their cursor in it. Tokens fix lightness and use the chroma every hue
   can reach, so all colors are equally vivid (a bit more so on P3 screens).
-- **Cursors.** The note editor shows other people's carets and selections, shared through
-  Automerge's ephemeral presence messages (relayed by the server, never stored).
+- **Presence.** Shared through Automerge's ephemeral presence messages (relayed by the server,
+  never stored; see `presence.ts`):
+  - The sidebar shows an avatar beside each note someone else has open. It slides to the new
+    note when they switch.
+  - In a note, the editor shows other people's carets and selections.
+  - Beside the title, each person gets a little pair of eyes. The eyes look towards their mouse,
+    or their caret, blink when they click, and close after 30 seconds of inactivity.
 - **Text fields.** Plain `<input>`s and `<textarea>`s, like the note title, bind to Automerge
   strings with `useAutomergeText`, which merges edits character by character and keeps the caret
   in place when someone else edits.

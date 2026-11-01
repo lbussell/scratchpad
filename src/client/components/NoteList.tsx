@@ -1,30 +1,46 @@
 import type { AutomergeUrl } from "@automerge/automerge-repo";
 import { useDocument } from "@automerge/automerge-repo-react-hooks";
 import { SquareTextIcon } from "lucide-react";
+import { PeerAvatar, PeerAvatarGroup } from "@/components/ui/peer";
 import {
   SidebarGroupContent,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { NoteDoc, RootDoc } from "../../shared/schema.ts";
+import { useSlide } from "../hooks/useSlide.ts";
+import { initials } from "../initials.ts";
 import { noteTitle } from "../notes.ts";
+import type { WorkspacePeer } from "../presence.ts";
 
 interface NoteListProps {
   rootDocUrl: AutomergeUrl;
   selected: AutomergeUrl | undefined;
   onSelect: (url: AutomergeUrl) => void;
+  /** Who else has each note open. */
+  peers: ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]>;
 }
 
-export function NoteList({ rootDocUrl, selected, onSelect }: NoteListProps) {
+const nobody: readonly WorkspacePeer[] = [];
+const names = new Intl.ListFormat(undefined, { type: "conjunction" });
+
+export function NoteList({ rootDocUrl, selected, onSelect, peers }: NoteListProps) {
   const [root] = useDocument<RootDoc>(rootDocUrl, { suspense: true });
 
   return (
     <SidebarGroupContent>
       <SidebarMenu>
         {root.notes.map((url) => (
-          <NoteListItem key={url} url={url} isSelected={url === selected} onSelect={onSelect} />
+          <NoteListItem
+            key={url}
+            url={url}
+            isSelected={url === selected}
+            onSelect={onSelect}
+            peers={peers.get(url) ?? nobody}
+          />
         ))}
       </SidebarMenu>
     </SidebarGroupContent>
@@ -35,9 +51,10 @@ interface NoteListItemProps {
   url: AutomergeUrl;
   isSelected: boolean;
   onSelect: (url: AutomergeUrl) => void;
+  peers: readonly WorkspacePeer[];
 }
 
-function NoteListItem({ url, isSelected, onSelect }: NoteListItemProps) {
+function NoteListItem({ url, isSelected, onSelect, peers }: NoteListItemProps) {
   // Not suspending, so one slow note doesn't block the whole list.
   const [note] = useDocument<NoteDoc>(url);
   const { setOpenMobile } = useSidebar();
@@ -54,8 +71,40 @@ function NoteListItem({ url, isSelected, onSelect }: NoteListItemProps) {
         }}
       >
         <SquareTextIcon />
-        <span>{note ? noteTitle(note) : "Loading…"}</span>
+        <span className="flex-1 truncate">{note ? noteTitle(note) : "Loading…"}</span>
+        {/* Makes room for the avatars, which sit outside the button so they can slide between
+            notes without being clipped. */}
+        {peers.length > 0 && (
+          <PeerAvatarGroup aria-hidden="true">
+            {peers.map(({ peerId }) => (
+              <span key={peerId} />
+            ))}
+          </PeerAvatarGroup>
+        )}
       </SidebarMenuButton>
+      {peers.length > 0 && (
+        <SidebarMenuBadge>
+          <PeerAvatarGroup>
+            {peers.map((peer) => (
+              <SlidingAvatar key={peer.peerId} peer={peer} />
+            ))}
+          </PeerAvatarGroup>
+          <span className="sr-only">
+            {names.format(peers.map(({ user }) => user.name))} {peers.length === 1 ? "is" : "are"}{" "}
+            here
+          </span>
+        </SidebarMenuBadge>
+      )}
     </SidebarMenuItem>
+  );
+}
+
+/** Someone's avatar, which slides over from the note they were in before. */
+function SlidingAvatar({ peer }: { peer: WorkspacePeer }) {
+  const ref = useSlide<HTMLSpanElement>(peer.peerId);
+  return (
+    <PeerAvatar ref={ref} hue={peer.user.hue} aria-hidden="true">
+      {initials(peer.user.name)}
+    </PeerAvatar>
   );
 }
