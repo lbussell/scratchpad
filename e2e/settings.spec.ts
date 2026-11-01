@@ -52,3 +52,17 @@ test("the Neutral color takes the tint out of the app", async ({ browser }) => {
   await page.getByRole("radio", { name: "Teal" }).click();
   await expect(html).toHaveAttribute("style", /--tint: 1/);
 });
+
+test("you log out from settings, not the sidebar", async ({ page }) => {
+  await page.goto("/");
+  const logOut = page.getByRole("button", { name: "Log out" });
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(logOut).toBeHidden();
+
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.route("**/test-logout", (route) => route.fulfill({ body: "Logged out" }));
+  const request = page.waitForRequest("**/test-logout");
+  await logOut.click();
+  expect((await request).method()).toBe("POST");
+  await expect(page.getByText("Logged out")).toBeVisible();
+});

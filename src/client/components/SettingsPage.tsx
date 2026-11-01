@@ -1,4 +1,4 @@
-import { MonitorIcon, MoonIcon, PencilIcon, SunIcon } from "lucide-react";
+import { LogOutIcon, MonitorIcon, MoonIcon, PencilIcon, SunIcon } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ColorSwatches } from "@/components/ui/color-swatches";
@@ -48,7 +48,7 @@ const themes: { value: Theme; label: string; icon: ReactNode }[] = [
  * Settings are rows: a label on the left, the value or control on the right. Text values use
  * regular weight, so they don't compete with the labels.
  */
-export function SettingsPage() {
+export function SettingsPage({ logoutUrl }: { logoutUrl: string | null }) {
   return (
     <div className="mx-auto w-full max-w-2xl p-6">
       <FieldGroup>
@@ -62,6 +62,11 @@ export function SettingsPage() {
           <ColorSetting />
           <ThemeSetting />
           <PeerStyleSetting />
+        </FieldSet>
+        <FieldSeparator />
+        <FieldSet>
+          <FieldLegend>Account</FieldLegend>
+          <AccountSetting logoutUrl={logoutUrl} />
         </FieldSet>
       </FieldGroup>
     </div>
@@ -153,6 +158,38 @@ function NameSetting() {
       {name === undefined && <FieldError className="mt-2 text-right">Enter a name.</FieldError>}
       {error !== undefined && <FieldError className="mt-2 text-right">{error}</FieldError>}
     </form>
+  );
+}
+
+/**
+ * Who you're signed in as, and Log out. It lives here rather than beside your name in the
+ * sidebar, where it was easy to click by accident.
+ */
+function AccountSetting({ logoutUrl }: { logoutUrl: string | null }) {
+  const { user } = useCurrentUser();
+
+  return (
+    <>
+      {/*
+        Like the display name, but not editable. A long email truncates, not the label. The padding
+        is the outline button's (px-2.5 and its border), so the email ends where "Log out" does.
+      */}
+      <Field orientation="horizontal">
+        <FieldTitle className="whitespace-nowrap">Signed in as</FieldTitle>
+        <span className="min-w-0 truncate pr-2.75 text-sm" title={user.email}>
+          {user.email}
+        </span>
+      </Field>
+      {/* Only if the deployment supports logging out: POST to its URL. */}
+      {logoutUrl !== null && (
+        <form method="post" action={logoutUrl} className="flex justify-end">
+          <Button type="submit" variant="outline">
+            <LogOutIcon />
+            Log out
+          </Button>
+        </form>
+      )}
+    </>
   );
 }
 

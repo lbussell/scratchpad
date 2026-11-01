@@ -119,7 +119,7 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
                 </SidebarLink>
               </SidebarMenuItem>
             </SidebarMenu>
-            <CurrentUser status={connectionStatus} logoutUrl={logoutUrl} />
+            <CurrentUser status={connectionStatus} />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className="min-w-0">
@@ -134,7 +134,7 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
             {route.page === "settings" && <h2 className="px-2.5 text-sm font-medium">Settings</h2>}
           </header>
           <div className="flex min-h-0 flex-1 flex-col">
-            <MainPane route={route} />
+            <MainPane route={route} logoutUrl={logoutUrl} />
           </div>
         </SidebarInset>
       </SidebarProvider>
@@ -142,8 +142,8 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
   );
 }
 
-function MainPane({ route }: { route: Route }) {
-  if (route.page === "settings") return <SettingsPage />;
+function MainPane({ route, logoutUrl }: { route: Route; logoutUrl: string | null }) {
+  if (route.page === "settings") return <SettingsPage logoutUrl={logoutUrl} />;
   if (route.page === "home") {
     return (
       <StatusMessage icon={<NotebookPenIcon />}>Select a note, or create a new one.</StatusMessage>

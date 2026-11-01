@@ -1,6 +1,4 @@
-import { LogOutIcon } from "lucide-react";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { initials } from "../initials.ts";
 import type { ConnectionStatus } from "../serverConnection.ts";
@@ -11,14 +9,8 @@ const statusLabels: Record<ConnectionStatus, string> = {
   offline: "Offline",
 };
 
-interface CurrentUserProps {
-  status: ConnectionStatus;
-  /** POST here to log out, if the deployment supports it. */
-  logoutUrl: string | null;
-}
-
-/** Who's signed in, with a green badge while connected to the sync server. */
-export function CurrentUser({ status, logoutUrl }: CurrentUserProps) {
+/** Who's signed in, with a green badge while connected to the sync server. Log out is in settings. */
+export function CurrentUser({ status }: { status: ConnectionStatus }) {
   const { user } = useCurrentUser();
 
   return (
@@ -31,13 +23,6 @@ export function CurrentUser({ status, logoutUrl }: CurrentUserProps) {
         <span className="truncate font-medium">{user.name}</span>
         <span className="truncate text-xs text-muted-foreground">{user.email}</span>
       </div>
-      {logoutUrl !== null && (
-        <form method="post" action={logoutUrl}>
-          <Button type="submit" variant="ghost" size="icon-sm" aria-label="Log out">
-            <LogOutIcon />
-          </Button>
-        </form>
-      )}
       {/* The badge and the offline banner show the status visually; this announces it. */}
       <output aria-label="Connection" className="sr-only">
         {statusLabels[status]}

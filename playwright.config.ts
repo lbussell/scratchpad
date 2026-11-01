@@ -27,6 +27,8 @@ export default defineConfig({
       // What e2e/helpers.ts sends to act as a user.
       AUTH_USER_ID_HEADER: "X-User-ID",
       AUTH_EMAIL_HEADER: "X-User-Email",
+      // Nothing serves it; e2e/settings.spec.ts intercepts the request.
+      AUTH_LOGOUT_URL: "/test-logout",
     },
     reuseExistingServer: false,
   },
