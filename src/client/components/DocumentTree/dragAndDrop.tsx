@@ -106,6 +106,7 @@ export function DropIndicator({ position }: { position: Drop["position"] | undef
     return (
       <span
         aria-hidden="true"
+        data-position={position}
         className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-sidebar-ring"
       />
     );

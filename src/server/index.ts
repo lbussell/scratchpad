@@ -17,10 +17,13 @@ import {
 import { type Identity, identify, loginRedirectUrl } from "./auth.ts";
 import { config } from "./config.ts";
 import { createSyncRepo, ensureRootDoc } from "./repo.ts";
+import { surviveAutomergeTimeouts } from "./unhandledRejections.ts";
 import { UserStore } from "./users.ts";
 
 const app = express();
 const httpServer = createServer(app);
+
+surviveAutomergeTimeouts();
 
 const wss = new WebSocketServer({ noServer: true });
 httpServer.on("upgrade", (request, socket, head) => {

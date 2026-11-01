@@ -98,3 +98,8 @@ checkout, so the two never share documents.
   (`src/server/users.ts`), not in Automerge documents, which every client can write.
 - Server logic that e2e tests can't reach (production-only behavior) gets `node --test` unit
   tests next to it (`*.test.ts`).
+- Add e2e tests sparingly: they're slow and the hardest to keep reliable. Put logic where
+  `node --test` can test it, and keep e2e tests for what only a browser shows (wiring, focus,
+  dragging, sync between browsers), extending an existing scenario before adding a new one. Wait
+  on what the page shows, never on timeouts. While iterating, run unit tests and the one spec you
+  changed; run the whole suite before committing.
