@@ -3,8 +3,6 @@
 Scratchpad is a collaborative document editor built on
 [Automerge](https://automerge.org).
 
-[![Deploy on exe.dev](https://raw.githubusercontent.com/boldsoftware/exe.dev/main/assets/buttons/deploy-on-exe-dev.png)](https://exe.dev/new?repo=https://github.com/lbussell/scratchpad)
-
 ## Try it locally
 
 You need [Node.js](https://nodejs.org) 24 or later.
@@ -15,6 +13,8 @@ npm run dev
 ```
 
 ## Deploying Scratchpad
+
+[![Deploy on exe.dev](https://raw.githubusercontent.com/boldsoftware/exe.dev/main/assets/buttons/deploy-on-exe-dev.png)](https://exe.dev/new?repo=https://github.com/lbussell/scratchpad)
 
 Scratchpad is designed to run behind a secure HTTPS proxy. Your proxy should
 authenticate users and pass user identity headers to Scratchpad. Everything
