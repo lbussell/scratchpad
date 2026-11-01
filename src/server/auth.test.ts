@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { type AuthConfig, devTabUser, identify, loginRedirectUrl } from "./auth.ts";
+import {
+  type AuthConfig,
+  devTabUser,
+  identify,
+  identityHeaderNames,
+  loginRedirectUrl,
+} from "./auth.ts";
 
 const production: AuthConfig = {
-  userIdHeader: "x-exedev-userid",
-  emailHeader: "x-exedev-email",
+  headers: { userId: "x-user-id", email: "x-user-email" },
   loginUrl: undefined,
   logoutUrl: undefined,
   devUser: undefined,
@@ -15,7 +20,7 @@ const request = (headers: Record<string, string> = {}, url = "/") => ({ headers,
 
 describe("identify", () => {
   it("reads the user from the proxy's headers", () => {
-    const headers = { "x-exedev-userid": "u1", "x-exedev-email": "ada@example.com" };
+    const headers = { "x-user-id": "u1", "x-user-email": "ada@example.com" };
     assert.deepEqual(identify(request(headers), production), {
       id: "u1",
       email: "ada@example.com",
@@ -23,9 +28,9 @@ describe("identify", () => {
   });
 
   it("needs both headers", () => {
-    assert.equal(identify(request({ "x-exedev-userid": "u1" }), production), undefined);
+    assert.equal(identify(request({ "x-user-id": "u1" }), production), undefined);
     assert.equal(
-      identify(request({ "x-exedev-userid": " ", "x-exedev-email": "a@b" }), production),
+      identify(request({ "x-user-id": " ", "x-user-email": "a@b" }), production),
       undefined,
     );
   });
@@ -36,7 +41,7 @@ describe("identify", () => {
   });
 
   it("prefers real headers over the dev user", () => {
-    const headers = { "x-exedev-userid": "u1", "x-exedev-email": "ada@example.com" };
+    const headers = { "x-user-id": "u1", "x-user-email": "ada@example.com" };
     assert.deepEqual(identify(request(headers), development), {
       id: "u1",
       email: "ada@example.com",
@@ -54,6 +59,35 @@ describe("identify", () => {
     assert.equal(identify(request({ "x-dev-tab": "abc123" }), production), undefined);
     assert.equal(identify(request({}, "/sync?devTab=abc123"), production), undefined);
     assert.deepEqual(identify(request({ "x-dev-tab": "../x" }), development), development.devUser);
+  });
+
+  it("ignores identity headers when no header names are configured", () => {
+    const headers = { "x-user-id": "u1", "x-user-email": "ada@example.com" };
+    assert.deepEqual(
+      identify(request(headers), { ...development, headers: undefined }),
+      development.devUser,
+    );
+  });
+});
+
+describe("identityHeaderNames", () => {
+  const env = { AUTH_USER_ID_HEADER: "X-User-ID", AUTH_EMAIL_HEADER: "X-User-Email" };
+
+  it("lowercases the configured names", () => {
+    assert.deepEqual(identityHeaderNames(env, true), {
+      userId: "x-user-id",
+      email: "x-user-email",
+    });
+  });
+
+  it("requires both names in production", () => {
+    assert.throws(() => identityHeaderNames({}, true), /AUTH_USER_ID_HEADER/);
+    assert.throws(() => identityHeaderNames({ ...env, AUTH_EMAIL_HEADER: " " }, true));
+  });
+
+  it("allows neither name in development, but not just one", () => {
+    assert.equal(identityHeaderNames({}, false), undefined);
+    assert.throws(() => identityHeaderNames({ AUTH_USER_ID_HEADER: "X-User-ID" }, false));
   });
 });
 

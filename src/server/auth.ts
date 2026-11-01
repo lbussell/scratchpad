@@ -10,9 +10,11 @@ export interface Identity {
 }
 
 export interface AuthConfig {
-  /** Lowercase header names carrying the user's stable ID and email. */
-  userIdHeader: string;
-  emailHeader: string;
+  /**
+   * Lowercase names of the headers carrying the user's stable ID and email. Unset only in
+   * development, when no proxy is configured.
+   */
+  headers: { userId: string; email: string } | undefined;
   /** Where to send signed-out visitors. `{path}` is replaced with the page they wanted. */
   loginUrl: string | undefined;
   /** Where the client POSTs to log out. */
@@ -47,9 +49,11 @@ export function identify(
   auth: AuthConfig,
 ): Identity | undefined {
   const { headers } = request;
-  const id = headerValue(headers[auth.userIdHeader]);
-  const email = headerValue(headers[auth.emailHeader]);
-  if (id !== undefined && email !== undefined) return { id, email };
+  if (auth.headers) {
+    const id = headerValue(headers[auth.headers.userId]);
+    const email = headerValue(headers[auth.headers.email]);
+    if (id !== undefined && email !== undefined) return { id, email };
+  }
   if (!auth.devUser) return undefined;
   const tab =
     headerValue(headers["x-dev-tab"]) ??
@@ -68,6 +72,29 @@ export function devTabUser(tab: string): Identity | undefined {
   const name = DEV_NAMES[hash % DEV_NAMES.length] ?? "Dev";
   // The part before the @ is the default name.
   return { id: `dev-tab-${tab}`, email: `${name}@example.com` };
+}
+
+/**
+ * The identity header names from AUTH_USER_ID_HEADER and AUTH_EMAIL_HEADER. Production needs both,
+ * because they're the only way to sign in; development works without them.
+ */
+export function identityHeaderNames(
+  env: Record<string, string | undefined>,
+  isProduction: boolean,
+): AuthConfig["headers"] {
+  const userId = env["AUTH_USER_ID_HEADER"]?.trim() ?? "";
+  const email = env["AUTH_EMAIL_HEADER"]?.trim() ?? "";
+  // Node lowercases incoming header names.
+  if (userId !== "" && email !== "") {
+    return { userId: userId.toLowerCase(), email: email.toLowerCase() };
+  }
+  if (userId !== "" || email !== "" || isProduction) {
+    throw new Error(
+      "Set both AUTH_USER_ID_HEADER and AUTH_EMAIL_HEADER to the headers your auth proxy " +
+        "sends. See docs/deploy.md.",
+    );
+  }
+  return undefined;
 }
 
 /** The login URL for someone who asked for `path`. */

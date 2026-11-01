@@ -21,7 +21,13 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: `http://localhost:${port}`,
-    env: { PORT: String(port), DATA_DIR: process.env["E2E_DATA_DIR"] },
+    env: {
+      PORT: String(port),
+      DATA_DIR: process.env["E2E_DATA_DIR"],
+      // What e2e/helpers.ts sends to act as a user.
+      AUTH_USER_ID_HEADER: "X-User-ID",
+      AUTH_EMAIL_HEADER: "X-User-Email",
+    },
     reuseExistingServer: false,
   },
 });

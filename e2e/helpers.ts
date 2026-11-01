@@ -1,8 +1,8 @@
 import { type Browser, expect, type Page } from "@playwright/test";
 
-/** Headers the auth proxy would add for this user (exe.dev's, the server's defaults). */
+/** Headers the auth proxy would add for this user (the names playwright.config.ts sets). */
 export function identityHeaders(email: string): Record<string, string> {
-  return { "x-exedev-userid": `id-${email}`, "x-exedev-email": email };
+  return { "x-user-id": `id-${email}`, "x-user-email": email };
 }
 
 /**
