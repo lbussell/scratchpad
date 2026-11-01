@@ -1,7 +1,6 @@
 import { expect, test, type WebSocketRoute } from "@playwright/test";
 
-/** The sync socket, whose URL has a query string in development (see src/client/devTab.ts). */
-const SYNC_URL = /\/sync(\?|$)/;
+const SYNC_URL = /\/sync$/;
 
 test("shows offline while the browser has no network", async ({ page, context }) => {
   await page.goto("/");

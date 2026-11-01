@@ -20,16 +20,39 @@ e2e/        Playwright tests
 - The server stores documents and `users.json` in `data/` (`DATA_DIR`). Delete it to start fresh.
 - Identity comes from proxy headers named by `AUTH_USER_ID_HEADER`/`AUTH_EMAIL_HEADER`
   (`docs/deploy.md`), which production requires. Outside production, requests without them
-  get a made-up user per browser tab (`src/client/devTab.ts`, `devTabUser` in
-  `src/server/auth.ts`); with no tab ID they get `DEV_USER_ID`/`DEV_USER_EMAIL`. Identity headers
-  still win, which is how e2e tests act as different users (`e2e/helpers.ts`, with header names
-  set in `playwright.config.ts`).
+  belong to `DEV_USER_ID`/`DEV_USER_EMAIL`. Identity headers win, which is how e2e tests act as
+  different users (`e2e/helpers.ts`, with header names set in `playwright.config.ts`).
+- `npm run dev` listens on port 8001 (production on 8000) and loads `.env` if present.
 - Presence (sidebar avatars, remote carets, eyes) uses Automerge ephemeral messages, which the
   server relays but never stores (`src/client/presence.ts`).
 - The URL hash picks what the main pane shows: a note's Automerge URL, `#settings`, or nothing
   (`src/client/hooks/useRoute.ts`).
 - Every theme token in `src/client/styles.css` derives from the `--hue` and `--tint` variables,
   which come from the user's color (Neutral is `--tint: 0`).
+
+## Develop on exe.dev
+
+You may be working in a checkout on the same exe.dev VM that runs production. Production runs on
+port 8000 with its own `DATA_DIR`. The dev server runs on port 8001 and uses `data/` in the
+checkout, so the two never share notes.
+
+- To develop as your real exe.dev user, create `.env` in the checkout with the exe.dev settings
+  from `docs/deploy.md`, except `DATA_DIR`:
+
+  ```sh
+  AUTH_USER_ID_HEADER=X-ExeDev-UserID
+  AUTH_EMAIL_HEADER=X-ExeDev-Email
+  AUTH_LOGIN_URL='/__exe.dev/login?redirect={path}'
+  AUTH_LOGOUT_URL=/__exe.dev/logout
+  HOST=127.0.0.1
+  ```
+
+- Run `npm run dev` and open `https://<vm>.exe.xyz:8001/` (`hostname` prints the VM name).
+  exe.dev forwards that port only to people with access to the VM. `vite.config.ts` allows
+  `.exe.xyz` hosts, which Vite would otherwise block.
+- Before the first `npm run test:e2e` on a VM, run `npx playwright install --with-deps chromium`.
+- Don't read or change production's data directory, and don't restart or redeploy production
+  unless asked. Deploys go through the process in `docs/deploy.md`.
 
 ## Rules
 

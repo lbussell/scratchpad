@@ -21,6 +21,8 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, "src/client") },
   },
+  // Lets the dev server answer through exe.dev's proxy (https://<vm>.exe.xyz:8001/).
+  server: { allowedHosts: [".exe.xyz"] },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/client"),
     emptyOutDir: true,

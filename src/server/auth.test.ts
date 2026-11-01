@@ -1,12 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  type AuthConfig,
-  devTabUser,
-  identify,
-  identityHeaderNames,
-  loginRedirectUrl,
-} from "./auth.ts";
+import { type AuthConfig, identify, identityHeaderNames, loginRedirectUrl } from "./auth.ts";
 
 const production: AuthConfig = {
   headers: { userId: "x-user-id", email: "x-user-email" },
@@ -16,7 +10,7 @@ const production: AuthConfig = {
 };
 const development: AuthConfig = { ...production, devUser: { id: "dev", email: "dev@example.com" } };
 
-const request = (headers: Record<string, string> = {}, url = "/") => ({ headers, url });
+const request = (headers: Record<string, string> = {}) => ({ headers });
 
 describe("identify", () => {
   it("reads the user from the proxy's headers", () => {
@@ -46,19 +40,6 @@ describe("identify", () => {
       id: "u1",
       email: "ada@example.com",
     });
-  });
-
-  it("gives each tab its own user in development, from a header or the URL", () => {
-    const fromHeader = identify(request({ "x-dev-tab": "abc123" }), development);
-    assert.deepEqual(fromHeader, devTabUser("abc123"));
-    assert.deepEqual(identify(request({}, "/sync?devTab=abc123"), development), fromHeader);
-    assert.notEqual(fromHeader?.id, devTabUser("xyz789")?.id);
-  });
-
-  it("ignores tab IDs in production, and invalid ones", () => {
-    assert.equal(identify(request({ "x-dev-tab": "abc123" }), production), undefined);
-    assert.equal(identify(request({}, "/sync?devTab=abc123"), production), undefined);
-    assert.deepEqual(identify(request({ "x-dev-tab": "../x" }), development), development.devUser);
   });
 
   it("ignores identity headers when no header names are configured", () => {

@@ -20,7 +20,7 @@ const auth: AuthConfig = {
 export const config = {
   isProduction,
   host: process.env["HOST"],
-  port: Number(process.env["PORT"] ?? 8000),
+  port: Number(process.env["PORT"] ?? (isProduction ? 8000 : 8001)),
   projectRoot,
   dataDir: path.resolve(projectRoot, process.env["DATA_DIR"] ?? "data"),
   clientDir: path.join(projectRoot, "dist/client"),

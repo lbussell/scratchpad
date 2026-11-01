@@ -3,13 +3,12 @@ import { BroadcastChannelNetworkAdapter } from "@automerge/automerge-repo-networ
 import { WebSocketClientAdapter } from "@automerge/automerge-repo-network-websocket";
 import { IndexedDBStorageAdapter } from "@automerge/automerge-repo-storage-indexeddb";
 import { SYNC_PATH } from "../shared/schema.ts";
-import { withDevTab } from "./devTab.ts";
 import { type ServerConnection, watchServerConnection } from "./serverConnection.ts";
 
 function syncServerUrl(): string {
   const url = new URL(SYNC_PATH, location.href);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  return withDevTab(url).href;
+  return url.href;
 }
 
 export function createRepo(): { repo: Repo; serverConnection: ServerConnection } {
