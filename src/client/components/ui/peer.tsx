@@ -93,7 +93,7 @@ function PeerEyes({
         "--eyes-y": `${y.toFixed(2)}px`,
       }}
       className={cn(
-        "group/peer relative inline-flex h-6 min-w-8.5 shrink-0 items-center justify-center rounded-md bg-peer select-none",
+        "group/peer relative inline-flex h-6 min-w-8.5 shrink-0 items-center justify-center rounded-[10px] bg-peer select-none",
         className,
       )}
       {...props}
