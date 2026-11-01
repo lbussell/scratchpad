@@ -7,5 +7,5 @@
     "moduleResolution": "nodenext",
     "types": ["node"]
   },
-  "include": ["src/server", "src/shared", "e2e", "playwright.config.ts"]
+  "include": ["src/server", "src/shared", "e2e", "scripts", "playwright.config.ts"]
 }

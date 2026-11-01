@@ -60,9 +60,13 @@ test("you log out from settings, not the sidebar", async ({ page }) => {
   await expect(logOut).toBeHidden();
 
   await page.getByRole("link", { name: "Settings" }).click();
+  // Saved so the app can start offline; logging out forgets it.
+  const savedSession = () => page.evaluate('localStorage.getItem("session")');
+  expect(await savedSession()).not.toBeNull();
   await page.route("**/test-logout", (route) => route.fulfill({ body: "Logged out" }));
   const request = page.waitForRequest("**/test-logout");
   await logOut.click();
   expect((await request).method()).toBe("POST");
   await expect(page.getByText("Logged out")).toBeVisible();
+  expect(await savedSession()).toBeNull();
 });

@@ -40,6 +40,27 @@ export async function openInNewBrowser(
   return page;
 }
 
+// A production build behind e2e/auth-proxy.ts, for what development leaves out, like the
+// service worker (playwright.config.ts starts it).
+export const productionUrl = process.env["E2E_PRODUCTION_URL"] ?? "";
+
+/**
+ * Like openInNewBrowser, but on the production build, signed in with a cookie as behind the real
+ * auth proxy.
+ */
+export async function openInNewProductionBrowser(
+  browser: Browser,
+  options: Parameters<Browser["newContext"]>[0] = {},
+): Promise<Page> {
+  const context = await browser.newContext(options);
+  await context.addCookies([
+    { name: "e2e-user", value: `${crypto.randomUUID()}@example.com`, url: productionUrl },
+  ]);
+  const page = await context.newPage();
+  await page.goto(productionUrl);
+  return page;
+}
+
 export const titleField = (page: Page) => page.getByRole("textbox", { name: "Title" });
 export const noteEditor = (page: Page) => page.getByRole("textbox", { name: "Note" });
 

@@ -22,10 +22,18 @@ function readStoredTheme(): Theme {
 }
 
 let theme = readStoredTheme();
+syncThemeColor();
 
 function applyTheme(): void {
   const isDark = theme === "dark" || (theme === "system" && darkScheme.matches);
   document.documentElement.classList.toggle("dark", isDark);
+  syncThemeColor();
+}
+
+/** Matches the browser's and the installed app's status bar to the page background. */
+function syncThemeColor(): void {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  meta?.setAttribute("content", getComputedStyle(document.body).backgroundColor);
 }
 
 function update(next: Theme): void {
@@ -70,6 +78,7 @@ export function applyColor(hue: Color): void {
   const { style } = document.documentElement;
   style.setProperty("--tint", hue === null ? "0" : "1");
   if (hue !== null) style.setProperty("--hue", String(hue));
+  syncThemeColor();
   try {
     localStorage.setItem(HUE_STORAGE_KEY, hue === null ? "neutral" : String(hue));
   } catch {

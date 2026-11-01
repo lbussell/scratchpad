@@ -11,6 +11,7 @@ src/
             profile API, and the client (Vite middleware in dev, dist/client in prod)
   shared/   Types and constants used by both sides (document schemas, URL paths)
 e2e/        Playwright tests
+scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from app-icon.svg)
 ```
 
 - One server process hosts sync and the web app on one port in both dev and prod.
@@ -27,6 +28,13 @@ e2e/        Playwright tests
   server relays but never stores (`src/client/presence.ts`).
 - The URL hash picks what the main pane shows: a note's Automerge URL, `#settings`, or nothing
   (`src/client/hooks/useRoute.ts`).
+- The app is a PWA. `vite-plugin-pwa` writes the manifest (configured in `vite.config.ts`), and
+  `src/client/sw.ts` precaches the build so the installed app opens offline. Pages come from the
+  network first, so the server and auth proxy still handle logins and deploys; the cached
+  `index.html` is only the fallback. The service worker only runs in production builds.
+- To start offline, the client saves the last `/api/session` response in localStorage
+  (`src/client/session.ts`). While online, it downloads every note
+  (`src/client/hooks/useDownloadAllNotes.ts`), not just the ones opened.
 - Every theme token in `src/client/styles.css` derives from the `--hue` and `--tint` variables,
   which come from the user's color (Neutral is `--tint: 0`).
 
@@ -50,6 +58,9 @@ checkout, so the two never share notes.
 - Run `npm run dev` and open `https://<vm>.exe.xyz:8001/` (`hostname` prints the VM name).
   exe.dev forwards that port only to people with access to the VM. `vite.config.ts` allows
   `.exe.xyz` hosts, which Vite would otherwise block.
+- `npm run test:e2e` also builds and starts production on port 3301, behind `e2e/auth-proxy.ts`, a
+  stand-in for the auth proxy that signs in with a cookie, for tests of the service worker
+  (`e2e/offline.spec.ts`). Playwright's extra headers don't reach requests the service worker makes.
 - Before the first `npm run test:e2e` on a VM, run `npx playwright install --with-deps chromium`.
 - Don't read or change production's data directory, and don't restart or redeploy production
   unless asked. Deploys go through the process in `docs/deploy.md`.

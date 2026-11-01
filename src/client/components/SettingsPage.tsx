@@ -30,7 +30,7 @@ import {
 } from "../../shared/schema.ts";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { useTheme } from "../hooks/useTheme.ts";
-import { updateProfile } from "../session.ts";
+import { forgetSavedSession, updateProfile } from "../session.ts";
 import { isTheme, type Theme } from "../theme.ts";
 
 const peerStyles: { value: PeerStyle; label: string }[] = [
@@ -182,7 +182,13 @@ function AccountSetting({ logoutUrl }: { logoutUrl: string | null }) {
       </Field>
       {/* Only if the deployment supports logging out: POST to its URL. */}
       {logoutUrl !== null && (
-        <form method="post" action={logoutUrl} className="flex justify-end">
+        <form
+          method="post"
+          action={logoutUrl}
+          className="flex justify-end"
+          // So the app can't open offline as you afterwards.
+          onSubmit={forgetSavedSession}
+        >
           <Button type="submit" variant="outline">
             <LogOutIcon />
             Log out

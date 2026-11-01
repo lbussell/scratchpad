@@ -12,6 +12,13 @@ npm install
 npm run dev
 ```
 
+## Install it on your phone
+
+Scratchpad is a Progressive Web App. Open it in Safari on iPhone and choose
+**Share → Add to Home Screen**, or in Chrome on Android choose **Install app**.
+The installed app opens without a connection and syncs your changes when you're
+back online.
+
 ## Deploying Scratchpad
 
 [![Deploy on exe.dev](https://raw.githubusercontent.com/boldsoftware/exe.dev/main/assets/buttons/deploy-on-exe-dev.png)](https://exe.dev/new?repo=https://github.com/lbussell/scratchpad)

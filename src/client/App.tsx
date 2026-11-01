@@ -1,6 +1,15 @@
 import { useDocHandle } from "@automerge/automerge-repo-react-hooks";
 import { NotebookPenIcon, SettingsIcon } from "lucide-react";
-import { Fragment, lazy, Suspense, useLayoutEffect, useMemo, useState } from "react";
+import {
+  Fragment,
+  lazy,
+  Suspense,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -25,11 +34,13 @@ import { OfflineBanner } from "./components/OfflineBanner.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
 import { StatusMessage } from "./components/StatusMessage.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
+import { useDownloadAllNotes } from "./hooks/useDownloadAllNotes.ts";
 import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
-import type { RootDoc, SessionResponse } from "../shared/schema.ts";
+import type { RootDoc, SessionResponse, UserProfile } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
 import { useWorkspacePresence } from "./presence.ts";
 import type { ServerConnection } from "./serverConnection.ts";
+import { fetchSession } from "./session.ts";
 import { applyColor } from "./theme.ts";
 
 // CodeMirror is a large share of the bundle and isn't needed until a note is open.
@@ -40,10 +51,12 @@ const NoteEditor = lazy(async () => {
 
 interface AppProps {
   session: SessionResponse;
+  /** The session was saved from an earlier visit because the server didn't answer. */
+  isSavedSession: boolean;
   serverConnection: ServerConnection;
 }
 
-export function App({ session, serverConnection }: AppProps) {
+export function App({ session, isSavedSession, serverConnection }: AppProps) {
   const { rootDocUrl, logoutUrl } = session;
   const route = useRoute();
   const connectionStatus = useConnectionStatus(serverConnection);
@@ -51,6 +64,8 @@ export function App({ session, serverConnection }: AppProps) {
   const currentUser = useMemo(() => ({ user, setUser }), [user]);
   // Before paint, so a changed color never shows the old one.
   useLayoutEffect(() => applyColor(user.hue), [user.hue]);
+  useRefreshSavedSession(isSavedSession && connectionStatus === "online", setUser);
+  useDownloadAllNotes(rootDocUrl, connectionStatus === "online");
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
@@ -62,6 +77,25 @@ export function App({ session, serverConnection }: AppProps) {
       />
     </CurrentUserContext.Provider>
   );
+}
+
+/**
+ * After starting from a saved session, fetches the current one once back online, in case the
+ * profile changed on another device meanwhile.
+ */
+function useRefreshSavedSession(shouldRefresh: boolean, setUser: (user: UserProfile) => void) {
+  const refreshed = useRef(false);
+  useEffect(() => {
+    if (!shouldRefresh || refreshed.current) return;
+    refreshed.current = true;
+    fetchSession().then(
+      (session) => setUser(session.user),
+      // Try again on the next reconnect.
+      () => {
+        refreshed.current = false;
+      },
+    );
+  }, [shouldRefresh, setUser]);
 }
 
 interface WorkspaceProps {

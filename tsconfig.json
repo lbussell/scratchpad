@@ -14,6 +14,9 @@
     },
     {
       "path": "./tsconfig.vite.json"
+    },
+    {
+      "path": "./tsconfig.sw.json"
     }
   ]
 }

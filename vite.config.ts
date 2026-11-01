@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { compression } from "vite-plugin-compression2";
+import { VitePWA } from "vite-plugin-pwa";
 import wasm from "vite-plugin-wasm";
 
 export default defineConfig({
@@ -16,6 +17,38 @@ export default defineConfig({
       include: /\.(html|css|js|svg|wasm)$/,
       algorithms: ["brotliCompress", "gzip"],
       threshold: 1024,
+    }),
+    // Makes the app installable (manifest.webmanifest) and able to open offline (src/client/sw.ts).
+    VitePWA({
+      strategies: "injectManifest",
+      srcDir: ".",
+      filename: "sw.ts",
+      // main.tsx registers the worker, only in production builds.
+      injectRegister: false,
+      // The auth proxy needs cookies to let the browser fetch the manifest.
+      useCredentials: true,
+      manifest: {
+        id: "/",
+        name: "Scratchpad",
+        short_name: "Scratchpad",
+        description: "Collaborative notes",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        background_color: "#fcfcfd",
+        theme_color: "#fcfcfd",
+        icons: [
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      injectManifest: {
+        // Everything the app needs to start, including Automerge's WebAssembly, but not the
+        // precompressed copies.
+        globPatterns: ["**/*.{html,js,css,svg,png,wasm,woff2,webmanifest}"],
+        maximumFileSizeToCacheInBytes: 10_000_000,
+      },
     }),
   ],
   resolve: {
