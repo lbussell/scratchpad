@@ -79,7 +79,7 @@ function PeerEyes({
   const x = asleep ? 0 : look.x * 5;
   const y = asleep ? 5 : look.y * 3;
   const eye = cn(
-    "h-2.5 w-1.25 rounded-full bg-presence-eye transition-[scale] duration-300",
+    "h-2.25 w-1 rounded-full bg-presence-eye transition-[scale] duration-300",
     asleep && "scale-y-20",
   );
 
@@ -93,7 +93,7 @@ function PeerEyes({
         "--eyes-y": `${y.toFixed(2)}px`,
       }}
       className={cn(
-        "group/peer relative inline-flex h-5 min-w-8.5 shrink-0 items-center justify-center rounded-[9px] bg-peer select-none",
+        "group/peer relative inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-full bg-peer select-none",
         className,
       )}
       {...props}
@@ -101,7 +101,7 @@ function PeerEyes({
       <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover/peer:opacity-0">
         <span
           ref={eyesRef}
-          className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1.25 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
+          className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
         >
           <span className={eye} />
           <span className={eye} />
