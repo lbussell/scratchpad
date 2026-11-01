@@ -4,6 +4,8 @@ import type { EditorView } from "@codemirror/view";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { PeerEyes } from "@/components/ui/peer";
 import type { NoteDoc } from "../../shared/schema.ts";
+import { useCurrentUser } from "../hooks/useCurrentUser.ts";
+import { initials } from "../initials.ts";
 import { type NotePeer, type NotePresence, useNotePresence } from "../presence.ts";
 import { resolveCursor } from "../remoteCursors.ts";
 
@@ -19,7 +21,8 @@ const REACH = { x: 300, y: 200 };
 
 /**
  * A little pair of eyes for everyone else in the note. They look at that person's mouse, or
- * their caret, blink when they click, and close when they've been idle for a while.
+ * their caret, blink when they click, and close when they've been idle for a while. Or, if the
+ * user prefers (see the peerStyle setting), their initials.
  */
 export function NotePeers({ url }: { url: AutomergeUrl }) {
   // Not suspending: the editor below handles loading and errors for the note.
@@ -32,6 +35,7 @@ function PeerEyesList({ handle }: { handle: DocHandle<NoteDoc> }) {
   const presence = useNotePresence(handle);
   const peers = useSyncExternalStore(presence.subscribe, presence.getOthers);
   const looks = useLooks(presence);
+  const showInitials = useCurrentUser().user.peerStyle === "initials";
 
   if (peers.length === 0) return null;
   return (
@@ -45,6 +49,7 @@ function PeerEyesList({ handle }: { handle: DocHandle<NoteDoc> }) {
               aria-hidden="true"
               hue={peer.user.hue}
               name={peer.user.name}
+              initials={showInitials ? initials(peer.user.name) : undefined}
               look={looks.get(peer.user.id) ?? AHEAD}
               asleep={peer.asleep}
               blinks={peer.clicks}

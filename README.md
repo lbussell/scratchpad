@@ -64,7 +64,8 @@ e2e/        Playwright tests
   - The sidebar shows an avatar beside each note someone else has open.
   - In a note, the editor shows other people's carets and selections.
   - Beside the title, each person gets a little pair of eyes. The eyes look towards their mouse,
-    or their caret, blink when they click, and close after 30 seconds of inactivity.
+    or their caret, blink when they click, and close after 30 seconds of inactivity. Hovering
+    shows their name. Users who prefer can see initials instead (a setting in their profile).
 - **Text fields.** Plain `<input>`s and `<textarea>`s, like the note title, bind to Automerge
   strings with `useAutomergeText`, which merges edits character by character and keeps the caret
   in place when someone else edits.

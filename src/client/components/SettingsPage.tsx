@@ -20,11 +20,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Color, HUES, MAX_NAME_LENGTH, normalizeName } from "../../shared/schema.ts";
+import {
+  type Color,
+  HUES,
+  isPeerStyle,
+  MAX_NAME_LENGTH,
+  normalizeName,
+  type PeerStyle,
+} from "../../shared/schema.ts";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { useTheme } from "../hooks/useTheme.ts";
 import { updateProfile } from "../session.ts";
 import { isTheme, type Theme } from "../theme.ts";
+
+const peerStyles: { value: PeerStyle; label: string }[] = [
+  { value: "eyes", label: "Eyes" },
+  { value: "initials", label: "Initials" },
+];
 
 const themes: { value: Theme; label: string; icon: ReactNode }[] = [
   { value: "light", label: "Light", icon: <SunIcon /> },
@@ -49,6 +61,7 @@ export function SettingsPage() {
           <FieldLegend>Appearance</FieldLegend>
           <ColorSetting />
           <ThemeSetting />
+          <PeerStyleSetting />
         </FieldSet>
       </FieldGroup>
     </div>
@@ -205,6 +218,56 @@ function ThemeSetting() {
           ))}
         </SelectContent>
       </Select>
+    </Field>
+  );
+}
+
+/** How other people in a note appear beside its title. Applies as you pick. */
+function PeerStyleSetting() {
+  const { user, setUser } = useCurrentUser();
+  const [error, setError] = useState<string>();
+  // Only the latest pick's response counts, if several are in flight.
+  const latestRequest = useRef(0);
+
+  const choose = async (peerStyle: PeerStyle) => {
+    const request = ++latestRequest.current;
+    const previous = user;
+    setUser({ ...user, peerStyle });
+    setError(undefined);
+    try {
+      const updated = await updateProfile({ peerStyle });
+      if (request === latestRequest.current) setUser(updated);
+    } catch (saveError) {
+      if (request !== latestRequest.current) return;
+      setUser(previous);
+      setError(saveError instanceof Error ? saveError.message : "Couldn’t save");
+    }
+  };
+
+  return (
+    <Field orientation="horizontal" className="items-start">
+      <FieldLabel htmlFor="peer-style">Show others as</FieldLabel>
+      <div className="flex flex-col items-end gap-2">
+        <Select
+          items={peerStyles}
+          value={user.peerStyle}
+          onValueChange={(value) => {
+            if (isPeerStyle(value)) void choose(value);
+          }}
+        >
+          <SelectTrigger id="peer-style" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {peerStyles.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {error !== undefined && <FieldError>{error}</FieldError>}
+      </div>
     </Field>
   );
 }

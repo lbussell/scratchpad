@@ -49,6 +49,14 @@ export function isValidColor(value: unknown): value is Color {
   return value === null || HUES.some(({ hue }) => hue === value);
 }
 
+/** How other people in a note appear beside its title: little eyes, or their initials. */
+export const PEER_STYLES = ["eyes", "initials"] as const;
+export type PeerStyle = (typeof PEER_STYLES)[number];
+
+export function isPeerStyle(value: unknown): value is PeerStyle {
+  return PEER_STYLES.some((style) => style === value);
+}
+
 /** A signed-in user. Stored on the server; each user can only change their own. */
 export interface UserProfile {
   /** Stable ID from the auth proxy. */
@@ -60,6 +68,8 @@ export interface UserProfile {
    * and their cursor as others see it. Lightness and chroma come from the client's theme.
    */
   hue: Color;
+  /** How this user sees other people in a note. */
+  peerStyle: PeerStyle;
 }
 
 export interface SessionResponse {
@@ -73,6 +83,7 @@ export interface SessionResponse {
 export interface UpdateProfileRequest {
   name?: string;
   hue?: Color;
+  peerStyle?: PeerStyle;
 }
 
 /** The trimmed name, or undefined if it's blank or too long. */
@@ -92,7 +103,9 @@ export function isUserProfile(value: unknown): value is UserProfile {
     "name" in value &&
     typeof value.name === "string" &&
     "hue" in value &&
-    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue)))
+    (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue))) &&
+    "peerStyle" in value &&
+    isPeerStyle(value.peerStyle)
   );
 }
 

@@ -39,6 +39,8 @@ function PeerAvatarGroup({ className, ...props }: React.ComponentProps<"span">) 
 interface PeerEyesProps extends Omit<React.ComponentProps<"span">, "style">, PeerProps {
   /** Shown instead of the eyes on hover. */
   name: string;
+  /** Shown instead of the eyes, if given: a plain avatar that still shows the name on hover. */
+  initials?: string | undefined;
   /** Where the eyes look, from -1 to 1 on each axis: left to right, and up to down. */
   look: { x: number; y: number };
   /** Closes the eyes, low down, with a "z" drifting up. */
@@ -54,6 +56,7 @@ interface PeerEyesProps extends Omit<React.ComponentProps<"span">, "style">, Pee
 function PeerEyes({
   hue,
   name,
+  initials,
   look,
   asleep = false,
   blinks = 0,
@@ -86,6 +89,7 @@ function PeerEyes({
   return (
     <span
       data-slot="peer-eyes"
+      data-face={initials === undefined ? "eyes" : "initials"}
       style={{
         "--peer-hue": hue ?? 0,
         "--peer-tint": hue === null ? 0 : 1,
@@ -93,19 +97,27 @@ function PeerEyes({
         "--eyes-y": `${y.toFixed(2)}px`,
       }}
       className={cn(
-        "group/peer relative inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-full bg-peer select-none",
+        "group/peer relative inline-flex h-6 min-w-9 shrink-0 items-center justify-center rounded-full bg-peer select-none data-[face=initials]:min-w-6",
         className,
       )}
       {...props}
     >
       <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover/peer:opacity-0">
-        <span
-          ref={eyesRef}
-          className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
-        >
-          <span className={eye} />
-          <span className={eye} />
-        </span>
+        {initials === undefined ? (
+          <span
+            ref={eyesRef}
+            className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
+          >
+            <span className={eye} />
+            <span className={eye} />
+          </span>
+        ) : (
+          // A pseudo-element, like the name below.
+          <span
+            data-initials={initials}
+            className="text-[11px] leading-none font-semibold text-presence-foreground before:content-[attr(data-initials)]"
+          />
+        )}
       </span>
       {/* Grows from nothing to the name's width, widening the character. A pseudo-element, so
           the name isn't part of the text: the character is decoration, labelled elsewhere. */}

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { HUES, MAX_NAME_LENGTH, type UserProfile } from "../shared/schema.ts";
+import { HUES, isPeerStyle, MAX_NAME_LENGTH, type UserProfile } from "../shared/schema.ts";
 import type { Identity } from "./auth.ts";
 
 type StoredUser = Omit<UserProfile, "id">;
@@ -26,8 +26,9 @@ export class UserStore {
     if (contents !== undefined) {
       const parsed: unknown = JSON.parse(contents);
       if (typeof parsed === "object" && parsed !== null) {
-        for (const [id, user] of Object.entries(parsed)) {
-          if (isStoredUser(user)) users.set(id, user);
+        for (const [id, value] of Object.entries(parsed)) {
+          const user = parseStoredUser(value);
+          if (user) users.set(id, user);
         }
       }
     }
@@ -42,16 +43,24 @@ export class UserStore {
     const hues = [...this.#users.values()].map((user) => user.hue).filter((hue) => hue !== null);
     const user: StoredUser = existing
       ? { ...existing, email: identity.email }
-      : { email: identity.email, name: defaultName(identity.email), hue: pickHue(hues) };
+      : {
+          email: identity.email,
+          name: defaultName(identity.email),
+          hue: pickHue(hues),
+          peerStyle: "eyes",
+        };
     this.#users.set(identity.id, user);
     await this.#save();
     return { id: identity.id, ...user };
   }
 
-  /** Changes are applied as given, so validate them first (see normalizeName, isValidColor). */
+  /**
+   * Changes are applied as given, so validate them first (see normalizeName, isValidColor,
+   * isPeerStyle).
+   */
   async update(
     identity: Identity,
-    changes: Partial<Pick<UserProfile, "name" | "hue">>,
+    changes: Partial<Pick<UserProfile, "name" | "hue" | "peerStyle">>,
   ): Promise<UserProfile> {
     const user = { ...(await this.ensure(identity)), ...changes };
     const { id, ...stored } = user;
@@ -103,15 +112,20 @@ async function writeFileAtomically(file: string, contents: string): Promise<void
   await fs.rename(temporary, file);
 }
 
-function isStoredUser(value: unknown): value is StoredUser {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "email" in value &&
-    typeof value.email === "string" &&
-    "name" in value &&
-    typeof value.name === "string" &&
-    "hue" in value &&
-    (value.hue === null || typeof value.hue === "number")
-  );
+/** A user from the file, filling in settings added since it was saved. */
+function parseStoredUser(value: unknown): StoredUser | undefined {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("email" in value) ||
+    typeof value.email !== "string" ||
+    !("name" in value) ||
+    typeof value.name !== "string" ||
+    !("hue" in value) ||
+    (value.hue !== null && typeof value.hue !== "number")
+  ) {
+    return undefined;
+  }
+  const peerStyle = "peerStyle" in value && isPeerStyle(value.peerStyle) ? value.peerStyle : "eyes";
+  return { email: value.email, name: value.name, hue: value.hue, peerStyle };
 }

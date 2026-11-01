@@ -4,6 +4,7 @@ import express, { type Request } from "express";
 import expressStaticGzip from "express-static-gzip";
 import { WebSocketServer } from "ws";
 import {
+  isPeerStyle,
   isValidColor,
   MAX_NAME_LENGTH,
   normalizeName,
@@ -94,6 +95,14 @@ app.patch(PROFILE_API_PATH, express.json(), async (request, response) => {
       return;
     }
     changes.hue = hue;
+  }
+  const peerStyle = field("peerStyle");
+  if (peerStyle !== undefined) {
+    if (!isPeerStyle(peerStyle)) {
+      response.status(400).json({ error: "Not one of the ways to show people" });
+      return;
+    }
+    changes.peerStyle = peerStyle;
   }
   response.json(await users.update(identityOf(request), changes));
 });

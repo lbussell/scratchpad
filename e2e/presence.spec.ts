@@ -121,3 +121,28 @@ test("shows eyes beside the title for everyone else in the note", async ({ brows
   await alice.getByRole("link", { name: "Settings" }).click();
   await expect(people(bob)).toHaveCount(0);
 });
+
+test("can show others by their initials instead of eyes, in settings", async ({ browser }) => {
+  const alice = await openInNewBrowser(browser, `ada-${crypto.randomUUID()}@example.com`);
+  const bob = await openInNewBrowser(browser);
+  const title = `Note ${crypto.randomUUID()}`;
+  await createNote(alice, title);
+  await bob.getByRole("button", { name: title }).click();
+  const alicesCharacter = people(bob).locator('[data-slot="peer-eyes"]');
+  await expect(alicesCharacter).toHaveAttribute("data-face", "eyes");
+
+  await bob.getByRole("link", { name: "Settings" }).click();
+  const setting = bob.getByRole("combobox", { name: "Show others as" });
+  await expect(setting).toHaveText("Eyes");
+  await setting.click();
+  await bob.getByRole("option", { name: "Initials" }).click();
+  await expect(setting).toHaveText("Initials");
+
+  await bob.goBack();
+  await expect(alicesCharacter).toHaveAttribute("data-face", "initials");
+  await expect(alicesCharacter.locator("[data-initials]")).toHaveAttribute("data-initials", "A");
+
+  // It's saved with Bob's profile.
+  await bob.reload();
+  await expect(alicesCharacter).toHaveAttribute("data-face", "initials");
+});

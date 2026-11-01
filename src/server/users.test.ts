@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -79,5 +79,30 @@ describe("UserStore", () => {
     const updated = await store.ensure({ id: "u1", email: "new@example.com" });
     assert.equal(updated.email, "new@example.com");
     assert.equal(updated.name, "old");
+  });
+});
+
+describe("peer style", () => {
+  it("starts as eyes, can change, and fills in for profiles saved before it existed", async () => {
+    const dir = await tempDir();
+    const store = await UserStore.open(dir);
+    const ada = { id: "u1", email: "ada@example.com" };
+    assert.equal((await store.ensure(ada)).peerStyle, "eyes");
+    assert.equal((await store.update(ada, { peerStyle: "initials" })).peerStyle, "initials");
+    assert.equal((await (await UserStore.open(dir)).ensure(ada)).peerStyle, "initials");
+
+    const old = await tempDir();
+    await writeFile(
+      path.join(old, "users.json"),
+      JSON.stringify({ u2: { email: "bob@example.com", name: "Bob", hue: 30 } }),
+    );
+    const bob = await (await UserStore.open(old)).ensure({ id: "u2", email: "bob@example.com" });
+    assert.deepEqual(bob, {
+      id: "u2",
+      email: "bob@example.com",
+      name: "Bob",
+      hue: 30,
+      peerStyle: "eyes",
+    });
   });
 });
