@@ -7,9 +7,10 @@ import {
   type UpdateProfileRequest,
   type UserProfile,
 } from "../shared/schema.ts";
+import { devTabHeaders } from "./devTab.ts";
 
 export async function fetchSession(): Promise<SessionResponse> {
-  const response = await fetch(SESSION_API_PATH);
+  const response = await fetch(SESSION_API_PATH, { headers: devTabHeaders });
   if (response.status === 401) {
     // Signed out since the page loaded. Reloading takes the server's route to the login page.
     location.reload();
@@ -24,7 +25,7 @@ export async function fetchSession(): Promise<SessionResponse> {
 export async function updateProfile(changes: UpdateProfileRequest): Promise<UserProfile> {
   const response = await fetch(PROFILE_API_PATH, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...devTabHeaders, "Content-Type": "application/json" },
     body: JSON.stringify(changes),
   });
   const body: unknown = await response.json().catch(() => undefined);

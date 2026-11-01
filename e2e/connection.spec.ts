@@ -1,5 +1,8 @@
 import { expect, test, type WebSocketRoute } from "@playwright/test";
 
+/** The sync socket, whose URL has a query string in development (see src/client/devTab.ts). */
+const SYNC_URL = /\/sync(\?|$)/;
+
 test("shows offline while the browser has no network", async ({ page, context }) => {
   await page.goto("/");
   const status = page.getByRole("status", { name: "Connection" });
@@ -24,7 +27,7 @@ test("shows offline while the browser has no network", async ({ page, context })
 test("shows offline while the sync server is unreachable", async ({ page }) => {
   let serverDown = false;
   const sockets: WebSocketRoute[] = [];
-  await page.routeWebSocket("**/sync", (socket) => {
+  await page.routeWebSocket(SYNC_URL, (socket) => {
     if (serverDown) {
       void socket.close();
       return;
@@ -47,7 +50,7 @@ test("shows offline while the sync server is unreachable", async ({ page }) => {
 
 test("loads notes once the sync server becomes reachable", async ({ page }) => {
   let serverDown = true;
-  await page.routeWebSocket("**/sync", (socket) => {
+  await page.routeWebSocket(SYNC_URL, (socket) => {
     if (serverDown) {
       void socket.close();
       return;

@@ -25,7 +25,7 @@ const wss = new WebSocketServer({ noServer: true });
 httpServer.on("upgrade", (request, socket, head) => {
   const { pathname } = new URL(request.url ?? "/", "http://localhost");
   if (pathname === SYNC_PATH) {
-    if (!identify(request.headers, config.auth)) {
+    if (!identify(request, config.auth)) {
       socket.end("HTTP/1.1 401 Unauthorized\r\n\r\n");
       return;
     }
@@ -43,7 +43,7 @@ const users = await UserStore.open(config.dataDir);
 // Everything requires a signed-in user. Visitors asking for a page go to the login page, if
 // there is one; everything else gets a 401.
 app.use((request, response, next) => {
-  if (identify(request.headers, config.auth)) {
+  if (identify(request, config.auth)) {
     next();
     return;
   }
@@ -56,7 +56,7 @@ app.use((request, response, next) => {
 });
 
 function identityOf(request: Request): Identity {
-  const identity = identify(request.headers, config.auth);
+  const identity = identify(request, config.auth);
   // The middleware above already turned away requests without one.
   if (!identity) throw new Error("Request has no identity");
   return identity;

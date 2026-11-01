@@ -94,7 +94,7 @@ their own identity headers. Set `HOST=127.0.0.1` if the proxy runs on the same m
 | `AUTH_LOGIN_URL`      | (none: plain 401)  | Where signed-out visitors go; `{path}` is the page they wanted |
 | `AUTH_LOGOUT_URL`     | (none: no log out) | The client POSTs here to log out                               |
 | `HOST`                | all interfaces     | Address to listen on                                           |
-| `DEV_USER_ID`         | `dev`              | Development only: user for requests without the headers        |
+| `DEV_USER_ID`         | `dev`              | Development only: user for requests with no headers or tab ID  |
 | `DEV_USER_EMAIL`      | `dev@example.com`  | Development only: that user's email                            |
 
 For exe.dev:
@@ -103,8 +103,14 @@ For exe.dev:
 AUTH_LOGIN_URL='/__exe.dev/login?redirect={path}' AUTH_LOGOUT_URL=/__exe.dev/logout npm start
 ```
 
-In development, requests without identity headers belong to the dev user. Headers still win, which
-is how the e2e tests act as different users (see `e2e/helpers.ts`).
+In development, requests without identity headers come from users made up for the purpose:
+
+- **Each browser tab is its own user**, with a name like Ada or Grace and its own color, so you can
+  try collaboration by opening a second tab. The tab sends a random ID that it keeps until it's
+  closed (see `src/client/devTab.ts` and `devTabUser` in `src/server/auth.ts`).
+- **Requests with no tab ID** belong to the dev user (`DEV_USER_ID`).
+- **Identity headers still win.** That's how the e2e tests act as different users (see
+  `e2e/helpers.ts`).
 
 ## Tooling
 

@@ -1,4 +1,4 @@
-import type { IncomingHttpHeaders } from "node:http";
+import type { IncomingMessage } from "node:http";
 
 /**
  * Who a request is from, as asserted by the auth proxy in front of the app. Only trustworthy if
@@ -17,15 +17,57 @@ export interface AuthConfig {
   loginUrl: string | undefined;
   /** Where the client POSTs to log out. */
   logoutUrl: string | undefined;
-  /** Used when a request has no identity headers. Only set outside production. */
+  /**
+   * Used when a request has no identity headers. Only set outside production, where it also
+   * turns on per-tab users (see devTabUser).
+   */
   devUser: Identity | undefined;
 }
 
-export function identify(headers: IncomingHttpHeaders, auth: AuthConfig): Identity | undefined {
+/** Names for development users, one picked per browser tab. */
+const DEV_NAMES = [
+  "Ada",
+  "Alan",
+  "Barbara",
+  "Dennis",
+  "Edsger",
+  "Frances",
+  "Grace",
+  "Hedy",
+  "Katherine",
+  "Ken",
+  "Linus",
+  "Margaret",
+  "Radia",
+  "Tim",
+];
+
+export function identify(
+  request: Pick<IncomingMessage, "headers" | "url">,
+  auth: AuthConfig,
+): Identity | undefined {
+  const { headers } = request;
   const id = headerValue(headers[auth.userIdHeader]);
   const email = headerValue(headers[auth.emailHeader]);
   if (id !== undefined && email !== undefined) return { id, email };
-  return auth.devUser;
+  if (!auth.devUser) return undefined;
+  const tab =
+    headerValue(headers["x-dev-tab"]) ??
+    new URL(request.url ?? "/", "http://localhost").searchParams.get("devTab");
+  return (tab === null ? undefined : devTabUser(tab)) ?? auth.devUser;
+}
+
+/**
+ * In development, each browser tab sends a random ID (see src/client/devTab.ts) and gets a user
+ * of its own, so one person can try out collaboration. Undefined for an invalid ID.
+ */
+export function devTabUser(tab: string): Identity | undefined {
+  if (!/^[a-z0-9]{1,32}$/.test(tab)) return undefined;
+  let hash = 0;
+  for (const char of tab) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  const name = DEV_NAMES[hash % DEV_NAMES.length] ?? "Dev";
+  // The part before the @ is the default name.
+  return { id: `dev-tab-${tab}`, email: `${name}@example.com` };
 }
 
 /** The login URL for someone who asked for `path`. */
