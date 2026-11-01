@@ -1,4 +1,5 @@
 import { expect, test, type WebSocketRoute } from "@playwright/test";
+import { newButton } from "./helpers.ts";
 
 const SYNC_URL = /\/sync$/;
 
@@ -60,8 +61,8 @@ test("loads notes once the sync server becomes reachable", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("status", { name: "Connection" })).toHaveText(/^Offline/);
   await expect(page.getByRole("alert")).toBeVisible();
-  await expect(page.getByRole("button", { name: "New note" })).toBeDisabled();
+  await expect(newButton(page)).toBeDisabled();
 
   serverDown = false;
-  await expect(page.getByRole("button", { name: "New note" })).toBeEnabled({ timeout: 15_000 });
+  await expect(newButton(page)).toBeEnabled({ timeout: 15_000 });
 });

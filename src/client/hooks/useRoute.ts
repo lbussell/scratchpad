@@ -2,7 +2,10 @@ import { type AutomergeUrl, isValidAutomergeUrl } from "@automerge/automerge-rep
 import { useSyncExternalStore } from "react";
 
 /** What the main pane shows. Lives in the URL hash so it survives reloads and can be shared. */
-export type Route = { page: "home" } | { page: "note"; url: AutomergeUrl } | { page: "settings" };
+export type Route =
+  | { page: "home" }
+  | { page: "document"; url: AutomergeUrl }
+  | { page: "settings" };
 
 const SETTINGS_HASH = "settings";
 
@@ -18,13 +21,13 @@ function getHash(): string {
 
 function parseRoute(hash: string): Route {
   if (hash === SETTINGS_HASH) return { page: "settings" };
-  if (isValidAutomergeUrl(hash)) return { page: "note", url: hash };
+  if (isValidAutomergeUrl(hash)) return { page: "document", url: hash };
   return { page: "home" };
 }
 
 export function routeHref(route: Route): string {
   if (route.page === "settings") return `#${SETTINGS_HASH}`;
-  if (route.page === "note") return `#${route.url}`;
+  if (route.page === "document") return `#${route.url}`;
   return "#";
 }
 

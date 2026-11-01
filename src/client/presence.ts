@@ -340,8 +340,8 @@ export function useNotePresence(handle: DocHandle<NoteDoc>): NotePresence {
 /** What each person shares about themselves in the workspace. */
 type WorkspaceState = {
   user: PresenceUser;
-  /** The note they have open, if any. */
-  note: AutomergeUrl | null;
+  /** The document they have open, if any. */
+  document: AutomergeUrl | null;
 };
 
 export interface WorkspacePeer {
@@ -350,27 +350,27 @@ export interface WorkspacePeer {
 }
 
 class WorkspacePresence extends SharedPresence<WorkspaceState> {
-  #notes: ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> = new Map();
+  #documents: ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> = new Map();
 
   constructor(handle: DocHandle<RootDoc>, user: PresenceUser) {
-    super(handle, { user, note: null }, isWorkspaceState);
+    super(handle, { user, document: null }, isWorkspaceState);
   }
 
-  /** Who else has each note open. For useSyncExternalStore. */
-  getNotes = (): ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> => this.#notes;
+  /** Who else has each document open. For useSyncExternalStore. */
+  getDocuments = (): ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> => this.#documents;
 
   protected override changed(): void {
-    const notes = new Map<AutomergeUrl, WorkspacePeer[]>();
+    const documents = new Map<AutomergeUrl, WorkspacePeer[]>();
     for (const { peerId, state } of this.peers()) {
-      if (state.note === null || state.user.id === this.state.user.id) continue;
-      const here = notes.get(state.note) ?? [];
-      // Once per person, even with the note open in several tabs.
+      if (state.document === null || state.user.id === this.state.user.id) continue;
+      const here = documents.get(state.document) ?? [];
+      // Once per person, even with the document open in several tabs.
       if (!here.some((peer) => peer.user.id === state.user.id)) {
         here.push({ peerId, user: state.user });
       }
-      notes.set(state.note, here);
+      documents.set(state.document, here);
     }
-    this.#notes = notes;
+    this.#documents = documents;
     super.changed();
   }
 }
@@ -381,8 +381,8 @@ function isWorkspaceState(value: unknown): value is WorkspaceState {
     value !== null &&
     "user" in value &&
     isPresenceUser(value.user) &&
-    "note" in value &&
-    (value.note === null || isValidAutomergeUrl(value.note))
+    "document" in value &&
+    (value.document === null || isValidAutomergeUrl(value.document))
   );
 }
 
@@ -391,12 +391,12 @@ const noPeers: ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> = new Map();
 const subscribeToNothing = () => () => {};
 
 /**
- * Tells everyone which note we have open, and returns who else has each note open. The handle
+ * Tells everyone which document we have open, and returns who else has each document open. The handle
  * is undefined while the root document loads.
  */
 export function useWorkspacePresence(
   handle: DocHandle<RootDoc> | undefined,
-  note: AutomergeUrl | null,
+  document: AutomergeUrl | null,
 ): ReadonlyMap<AutomergeUrl, readonly WorkspacePeer[]> {
   const { user } = useCurrentUser();
   const presence = handle
@@ -406,13 +406,13 @@ export function useWorkspacePresence(
 
   useEffect(() => presence?.setUser({ id, name, hue }), [presence, id, name, hue]);
   useEffect(() => {
-    if (presence && presence.state.note !== note) presence.broadcast("note", note);
-  }, [presence, note]);
+    if (presence && presence.state.document !== document) presence.broadcast("document", document);
+  }, [presence, document]);
   useEffect(() => presence?.retain(), [presence]);
 
   return useSyncExternalStore(
     presence?.subscribe ?? subscribeToNothing,
-    presence?.getNotes ?? (() => noPeers),
+    presence?.getDocuments ?? (() => noPeers),
   );
 }
 

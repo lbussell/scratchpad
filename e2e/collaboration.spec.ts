@@ -1,5 +1,12 @@
 import { expect } from "@playwright/test";
-import { createNote, noteEditor, openInNewBrowser, test, titleField } from "./helpers.ts";
+import {
+  createNote,
+  newButton,
+  noteEditor,
+  openInNewBrowser,
+  test,
+  titleField,
+} from "./helpers.ts";
 
 test("notes and edits sync between separate browsers via the server", async ({ browser }) => {
   const alice = await openInNewBrowser(browser);
@@ -64,7 +71,8 @@ test("the caret stays put when someone else edits the title", async ({ browser }
 
 test("a note without a title is listed as Untitled", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "New note" }).click();
+  await newButton(page).click();
+  await page.getByRole("menuitem", { name: "Note" }).click();
 
   await expect(titleField(page)).toHaveAttribute("placeholder", "Untitled");
   await expect(page.getByRole("button", { name: "Untitled" }).first()).toBeVisible();

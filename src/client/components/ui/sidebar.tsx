@@ -426,23 +426,52 @@ function SidebarGroupContent({ className, ...props }: React.ComponentProps<"div"
   );
 }
 
-function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
+function SidebarMenu({
+  className,
+  nested = false,
+  ...props
+}: React.ComponentProps<"ul"> & {
+  /**
+   * Inside another item, such as a folder: indented behind a guide line under the parent's icon,
+   * and still reaching the parent's right edge.
+   */
+  nested?: boolean;
+}) {
   return (
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-0", className)}
+      className={cn(
+        "flex w-full min-w-0 flex-col gap-0",
+        nested && "ml-4 w-auto border-l border-sidebar-border pl-1.5",
+        className,
+      )}
       {...props}
     />
   );
 }
 
-function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
+function SidebarMenuItem({
+  className,
+  draggable = false,
+  isDragging = false,
+  ...props
+}: Omit<React.ComponentProps<"li">, "draggable"> & {
+  /** Can be dragged with a touch and hold, so keeps the browser's own long press out of the way. */
+  draggable?: boolean;
+  /** Dims the item while it's being dragged. */
+  isDragging?: boolean;
+}) {
   return (
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative", className)}
+      data-dragging={isDragging || undefined}
+      className={cn(
+        "group/menu-item relative data-dragging:opacity-40",
+        draggable && "touch-manipulation select-none [-webkit-touch-callout:none]",
+        className,
+      )}
       {...props}
     />
   );
@@ -560,7 +589,7 @@ function SidebarMenuBadge({ className, ...props }: React.ComponentProps<"div">) 
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
       className={cn(
-        "pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium text-sidebar-foreground tabular-nums select-none group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 peer-data-active/menu-button:text-sidebar-accent-foreground",
+        "pointer-events-none absolute right-1 flex group-has-data-[sidebar=menu-action]/menu-item:right-7 h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium text-sidebar-foreground tabular-nums select-none group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 peer-data-active/menu-button:text-sidebar-accent-foreground",
         className,
       )}
       {...props}

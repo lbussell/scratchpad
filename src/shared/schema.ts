@@ -109,12 +109,47 @@ export function isUserProfile(value: unknown): value is UserProfile {
   );
 }
 
-/** The single document every user shares. It indexes all the notes. */
+/** The single document every user shares. It indexes all the other documents. */
 export interface RootDoc {
-  /** Newest first. */
-  notes: AutomergeUrl[];
+  /**
+   * Every document, newest first. Where each one sits in the sidebar is in `positions`. Root
+   * documents from before folders called this `notes`; the server renames it at startup.
+   */
+  documents: AutomergeUrl[];
+  /**
+   * Where each document and folder sits in the sidebar. Documents missing here show at the top,
+   * newest first. The server adds this to root documents from before folders.
+   */
+  positions?: Record<SidebarItemId, SidebarPosition>;
+  /** The server adds this to root documents from before folders. */
+  folders?: Record<FolderId, Folder>;
 }
 
+/** Folder IDs have a prefix, so they can't be mistaken for document URLs. */
+export type FolderId = `folder:${string}`;
+
+/** What the sidebar lists: a document or a folder. */
+export type SidebarItemId = AutomergeUrl | FolderId;
+
+export interface SidebarPosition {
+  /** The folder it's in, or null for the top level. Folders only hold documents, not other folders. */
+  parent: FolderId | null;
+  /**
+   * A fractional index: siblings sort by it (then by ID, for ties from concurrent moves), so moving
+   * an item only changes the item.
+   */
+  order: string;
+}
+
+export interface Folder {
+  name: string;
+}
+
+export function isFolderId(id: string): id is FolderId {
+  return id.startsWith("folder:");
+}
+
+/** A note: a title and text. So far the only type of document. */
 export interface NoteDoc {
   /** Missing on notes created before titles existed. */
   title?: string;

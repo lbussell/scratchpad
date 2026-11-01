@@ -15,9 +15,16 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
 ```
 
 - One server process hosts sync and the web app on one port in both dev and prod.
-- On first start the server creates the root document, which lists every note, and saves its URL
-  to `data/root-doc-url`. Each note is its own Automerge document. Clients get the root URL and
-  their identity from `/api/session`.
+- On first start the server creates the root document, which lists every document, and saves its
+  URL to `data/root-doc-url`. Each document is its own Automerge document. Clients get the root URL
+  and their identity from `/api/session`. The server brings older root documents up to date at
+  startup (`migrateRootDoc` in `src/server/repo.ts`).
+- Code that works with any document says "document"; code for a particular type of document names
+  the type. So far the only type is the note (`NoteDoc`: a title and text).
+- The root document's `positions` (a parent folder and a fractional index for each document and
+  folder) and `folders` arrange the sidebar. Change them only through `src/client/tree.ts`, which
+  also tidies what concurrent moves leave behind. Deleting a document only removes it from the root
+  document; the document itself stays in storage.
 - The server stores documents and `users.json` in `data/` (`DATA_DIR`). Delete it to start fresh.
 - Identity comes from proxy headers named by `AUTH_USER_ID_HEADER`/`AUTH_EMAIL_HEADER`
   (`docs/deploy.md`), which production requires. Outside production, requests without them
@@ -26,15 +33,15 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
 - `npm run dev` listens on port 8001 (production on 8000) and loads `.env` if present.
 - Presence (sidebar avatars, remote carets, eyes) uses Automerge ephemeral messages, which the
   server relays but never stores (`src/client/presence.ts`).
-- The URL hash picks what the main pane shows: a note's Automerge URL, `#settings`, or nothing
+- The URL hash picks what the main pane shows: a document's Automerge URL, `#settings`, or nothing
   (`src/client/hooks/useRoute.ts`).
 - The app is a PWA. `vite-plugin-pwa` writes the manifest (configured in `vite.config.ts`), and
   `src/client/sw.ts` precaches the build so the installed app opens offline. Pages come from the
   network first, so the server and auth proxy still handle logins and deploys; the cached
   `index.html` is only the fallback. The service worker only runs in production builds.
 - To start offline, the client saves the last `/api/session` response in localStorage
-  (`src/client/session.ts`). While online, it downloads every note
-  (`src/client/hooks/useDownloadAllNotes.ts`), not just the ones opened.
+  (`src/client/session.ts`). While online, it downloads every
+  document (`src/client/hooks/useDownloadAllDocuments.ts`), not just the ones opened.
 - Every theme token in `src/client/styles.css` derives from the `--hue` and `--tint` variables,
   which come from the user's color (Neutral is `--tint: 0`).
 
@@ -42,7 +49,7 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
 
 You may be working in a checkout on the same exe.dev VM that runs production. Production runs on
 port 8000 with its own `DATA_DIR`. The dev server runs on port 8001 and uses `data/` in the
-checkout, so the two never share notes.
+checkout, so the two never share documents.
 
 - To develop as your real exe.dev user, create `.env` in the checkout with the exe.dev settings
   from `docs/deploy.md`, except `DATA_DIR`:

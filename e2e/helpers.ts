@@ -64,9 +64,21 @@ export async function openInNewProductionBrowser(
 export const titleField = (page: Page) => page.getByRole("textbox", { name: "Title" });
 export const noteEditor = (page: Page) => page.getByRole("textbox", { name: "Note" });
 
-/** Creates a note; the title field has focus first. */
+export const newButton = (page: Page) => page.getByRole("button", { name: "New", exact: true });
+
+/** Creates a note at the top of the sidebar; the title field has focus first. */
 export async function createNote(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "New note" }).click();
+  await newButton(page).click();
+  await page.getByRole("menuitem", { name: "Note" }).click();
   await expect(titleField(page)).toBeFocused();
   await page.keyboard.type(title);
+}
+
+/** Creates a folder at the top of the sidebar and names it. */
+export async function createFolder(page: Page, name: string): Promise<void> {
+  await newButton(page).click();
+  await page.getByRole("menuitem", { name: "Folder" }).click();
+  await expect(page.getByRole("textbox", { name: "Folder name" })).toBeFocused();
+  await page.keyboard.type(name);
+  await page.keyboard.press("Enter");
 }

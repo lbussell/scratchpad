@@ -26,17 +26,17 @@ import {
 } from "@/components/ui/sidebar";
 import { CurrentUser } from "./components/CurrentUser.tsx";
 import { DocumentBoundary } from "./components/DocumentBoundary.tsx";
-import { NewNoteButton } from "./components/NewNoteButton.tsx";
-import { NoteList } from "./components/NoteList.tsx";
+import { NewMenu } from "./components/NewMenu.tsx";
+import { DocumentTree } from "./components/DocumentTree/DocumentTree.tsx";
 import { NotePeers } from "./components/NotePeers.tsx";
 import { NoteTitle } from "./components/NoteTitle.tsx";
 import { OfflineBanner } from "./components/OfflineBanner.tsx";
 import { SettingsPage } from "./components/SettingsPage.tsx";
 import { StatusMessage } from "./components/StatusMessage.tsx";
 import { useConnectionStatus } from "./hooks/useConnectionStatus.ts";
-import { useDownloadAllNotes } from "./hooks/useDownloadAllNotes.ts";
+import { useDownloadAllDocuments } from "./hooks/useDownloadAllDocuments.ts";
 import { navigate, type Route, routeHref, useRoute } from "./hooks/useRoute.ts";
-import type { RootDoc, SessionResponse, UserProfile } from "../shared/schema.ts";
+import type { FolderId, RootDoc, SessionResponse, UserProfile } from "../shared/schema.ts";
 import { CurrentUserContext } from "./hooks/useCurrentUser.ts";
 import { useWorkspacePresence } from "./presence.ts";
 import type { ServerConnection } from "./serverConnection.ts";
@@ -65,7 +65,7 @@ export function App({ session, isSavedSession, serverConnection }: AppProps) {
   // Before paint, so a changed color never shows the old one.
   useLayoutEffect(() => applyColor(user.hue), [user.hue]);
   useRefreshSavedSession(isSavedSession && connectionStatus === "online", setUser);
-  useDownloadAllNotes(rootDocUrl, connectionStatus === "online");
+  useDownloadAllDocuments(rootDocUrl, connectionStatus === "online");
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
@@ -106,9 +106,11 @@ interface WorkspaceProps {
 }
 
 function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: WorkspaceProps) {
-  const openNote = route.page === "note" ? route.url : null;
-  // Tells everyone which note we have open; the sidebar shows where everyone else is.
-  const peers = useWorkspacePresence(useDocHandle<RootDoc>(rootDocUrl), openNote);
+  const openDocument = route.page === "document" ? route.url : null;
+  // Tells everyone which document we have open; the sidebar shows where everyone else is.
+  const peers = useWorkspacePresence(useDocHandle<RootDoc>(rootDocUrl), openDocument);
+  // The folder whose name is being edited, such as one just created.
+  const [renaming, setRenaming] = useState<FolderId | null>(null);
 
   return (
     <>
@@ -120,24 +122,28 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
           <SidebarContent>
             {/* Grows so loading and error messages center in the space below the button. */}
             <SidebarGroup className="flex-1">
-              <NewNoteButton
+              <NewMenu
                 rootDocUrl={rootDocUrl}
-                onCreate={(url) => navigate({ page: "note", url })}
+                onCreateNote={(url) => navigate({ page: "document", url })}
+                onCreateFolder={setRenaming}
               />
               <DocumentBoundary
                 url={rootDocUrl}
                 fallback={
                   <StatusMessage pending>
-                    Couldn’t load notes. Waiting for the server…
+                    Couldn’t load documents. Waiting for the server…
                   </StatusMessage>
                 }
               >
-                <Suspense fallback={<StatusMessage pending>Loading notes…</StatusMessage>}>
-                  <NoteList
+                <Suspense fallback={<StatusMessage pending>Loading documents…</StatusMessage>}>
+                  <DocumentTree
                     rootDocUrl={rootDocUrl}
-                    selected={route.page === "note" ? route.url : undefined}
-                    onSelect={(url) => navigate({ page: "note", url })}
+                    selected={route.page === "document" ? route.url : undefined}
+                    onSelect={(url) => navigate({ page: "document", url })}
+                    onDeleteSelected={() => navigate({ page: "home" })}
                     peers={peers}
+                    renaming={renaming}
+                    onRenamingChange={setRenaming}
                   />
                 </Suspense>
               </DocumentBoundary>
@@ -159,7 +165,7 @@ function Workspace({ rootDocUrl, logoutUrl, route, connectionStatus }: Workspace
         <SidebarInset className="min-w-0">
           <header className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
             <SidebarTrigger />
-            {route.page === "note" && (
+            {route.page === "document" && (
               <Fragment key={route.url}>
                 <NoteTitle url={route.url} />
                 <NotePeers url={route.url} />
@@ -180,16 +186,20 @@ function MainPane({ route, logoutUrl }: { route: Route; logoutUrl: string | null
   if (route.page === "settings") return <SettingsPage logoutUrl={logoutUrl} />;
   if (route.page === "home") {
     return (
-      <StatusMessage icon={<NotebookPenIcon />}>Select a note, or create a new one.</StatusMessage>
+      <StatusMessage icon={<NotebookPenIcon />}>
+        Select a document, or create a new one.
+      </StatusMessage>
     );
   }
   return (
     <DocumentBoundary
       key={route.url}
       url={route.url}
-      fallback={<StatusMessage pending>Couldn’t load note. Waiting for the server…</StatusMessage>}
+      fallback={
+        <StatusMessage pending>Couldn’t load document. Waiting for the server…</StatusMessage>
+      }
     >
-      <Suspense fallback={<StatusMessage pending>Loading note…</StatusMessage>}>
+      <Suspense fallback={<StatusMessage pending>Loading document…</StatusMessage>}>
         <NoteEditor key={route.url} url={route.url} />
       </Suspense>
     </DocumentBoundary>

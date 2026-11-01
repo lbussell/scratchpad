@@ -1,4 +1,4 @@
-// The service worker, which lets the installed app open without a connection. Notes are already
+// The service worker, which lets the installed app open without a connection. Documents are already
 // stored on the device by Automerge (IndexedDB); this caches the app itself. Only registered in
 // production builds (main.tsx).
 import { clientsClaim } from "workbox-core";
