@@ -77,9 +77,9 @@ function PeerEyes({
 
   // The eyes move within the character. Asleep, they settle near the bottom.
   const x = asleep ? 0 : look.x * 5;
-  const y = asleep ? 6 : look.y * 4;
+  const y = asleep ? 5 : look.y * 3;
   const eye = cn(
-    "h-2.75 w-1.25 rounded-full bg-presence-eye transition-[scale] duration-300",
+    "h-2.5 w-1.25 rounded-full bg-presence-eye transition-[scale] duration-300",
     asleep && "scale-y-20",
   );
 
@@ -93,7 +93,7 @@ function PeerEyes({
         "--eyes-y": `${y.toFixed(2)}px`,
       }}
       className={cn(
-        "group/peer relative inline-flex h-6 min-w-8.5 shrink-0 items-center justify-center rounded-[10px] bg-peer select-none",
+        "group/peer relative inline-flex h-5 min-w-8.5 shrink-0 items-center justify-center rounded-[9px] bg-peer select-none",
         className,
       )}
       {...props}
