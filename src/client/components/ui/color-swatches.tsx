@@ -28,8 +28,12 @@ function ColorSwatches({
   return (
     <RadioGroup
       data-slot="color-swatches"
-      // Two rows of hues, with Neutral to their left.
-      className={cn("grid grid-cols-[auto_repeat(12,auto)] gap-2", className)}
+      // Rows of hues, with Neutral to their left: four rows of six where a field group is narrow
+      // (phones), two rows of twelve where it's wide enough.
+      className={cn(
+        "grid grid-cols-[auto_repeat(6,auto)] gap-2 @xl/field-group:grid-cols-[auto_repeat(12,auto)]",
+        className,
+      )}
       value={value === null ? NEUTRAL : String(value)}
       onValueChange={(selected) => onValueChange(selected === NEUTRAL ? null : Number(selected))}
       {...props}
@@ -52,7 +56,7 @@ function ColorSwatches({
           }
           className={cn(
             "flex size-7 items-center justify-center rounded-full bg-swatch text-primary-foreground ring-offset-2 ring-offset-background outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-checked:ring-2 data-checked:ring-foreground",
-            hue === null && "row-span-2 mr-2 self-center",
+            hue === null && "row-span-4 mr-2 self-center @xl/field-group:row-span-2",
           )}
         >
           <Radio.Indicator>

@@ -124,28 +124,31 @@ function NameSetting() {
         void save();
       }}
     >
-      <Field orientation="horizontal" data-invalid={name === undefined || error !== undefined}>
+      {/* Responsive: on phones the label sits above the input and buttons, which don't fit beside it. */}
+      <Field orientation="responsive" data-invalid={name === undefined || error !== undefined}>
         <FieldLabel htmlFor="profile-name">Display name</FieldLabel>
-        <Input
-          id="profile-name"
-          className="w-56"
-          value={draft}
-          maxLength={MAX_NAME_LENGTH}
-          aria-invalid={name === undefined}
-          // The user just asked to edit it.
-          // oxlint-disable-next-line jsx-a11y/no-autofocus
-          autoFocus
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") stopEditing();
-          }}
-        />
-        <Button type="submit" disabled={name === undefined || isSaving}>
-          Save
-        </Button>
-        <Button type="button" variant="ghost" disabled={isSaving} onClick={stopEditing}>
-          Cancel
-        </Button>
+        <div className="flex gap-2">
+          <Input
+            id="profile-name"
+            className="min-w-0 flex-1 @md/field-group:w-56 @md/field-group:flex-none"
+            value={draft}
+            maxLength={MAX_NAME_LENGTH}
+            aria-invalid={name === undefined}
+            // The user just asked to edit it.
+            // oxlint-disable-next-line jsx-a11y/no-autofocus
+            autoFocus
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") stopEditing();
+            }}
+          />
+          <Button type="submit" disabled={name === undefined || isSaving}>
+            Save
+          </Button>
+          <Button type="button" variant="ghost" disabled={isSaving} onClick={stopEditing}>
+            Cancel
+          </Button>
+        </div>
       </Field>
       {name === undefined && <FieldError className="mt-2 text-right">Enter a name.</FieldError>}
       {error !== undefined && <FieldError className="mt-2 text-right">{error}</FieldError>}
