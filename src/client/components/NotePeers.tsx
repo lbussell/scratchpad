@@ -35,15 +35,16 @@ function PeerEyesList({ handle }: { handle: DocHandle<NoteDoc> }) {
 
   if (peers.length === 0) return null;
   return (
-    <ul aria-label="People in this note" className="flex shrink-0 gap-1.5 px-1">
+    <ul aria-label="People in this note" className="flex shrink-0 items-center gap-1.5 px-1">
       {peers.map((peer) => {
         const label = peer.asleep ? `${peer.user.name} (idle)` : peer.user.name;
         return (
-          <li key={peer.user.id} title={label}>
+          <li key={peer.user.id} className="flex">
             <PeerEyes
               data-user={peer.user.id}
               aria-hidden="true"
               hue={peer.user.hue}
+              name={peer.user.name}
               look={looks.get(peer.user.id) ?? AHEAD}
               asleep={peer.asleep}
               blinks={peer.clicks}

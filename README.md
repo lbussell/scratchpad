@@ -61,8 +61,7 @@ e2e/        Playwright tests
   can reach, so all colors are equally vivid (a bit more so on P3 screens).
 - **Presence.** Shared through Automerge's ephemeral presence messages (relayed by the server,
   never stored; see `presence.ts`):
-  - The sidebar shows an avatar beside each note someone else has open. It slides to the new
-    note when they switch.
+  - The sidebar shows an avatar beside each note someone else has open.
   - In a note, the editor shows other people's carets and selections.
   - Beside the title, each person gets a little pair of eyes. The eyes look towards their mouse,
     or their caret, blink when they click, and close after 30 seconds of inactivity.

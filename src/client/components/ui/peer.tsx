@@ -37,16 +37,29 @@ function PeerAvatarGroup({ className, ...props }: React.ComponentProps<"span">) 
 }
 
 interface PeerEyesProps extends Omit<React.ComponentProps<"span">, "style">, PeerProps {
+  /** Shown instead of the eyes on hover. */
+  name: string;
   /** Where the eyes look, from -1 to 1 on each axis: left to right, and up to down. */
   look: { x: number; y: number };
-  /** Closes the eyes, with a "z" drifting up. */
+  /** Closes the eyes, low down, with a "z" drifting up. */
   asleep?: boolean;
   /** The eyes blink each time this changes. */
   blinks?: number;
 }
 
-/** A little character in someone's color whose eyes look around. */
-function PeerEyes({ hue, look, asleep = false, blinks = 0, className, ...props }: PeerEyesProps) {
+/**
+ * A little character in someone's color whose eyes look around. Hovering it turns it into their
+ * name.
+ */
+function PeerEyes({
+  hue,
+  name,
+  look,
+  asleep = false,
+  blinks = 0,
+  className,
+  ...props
+}: PeerEyesProps) {
   const eyesRef = React.useRef<HTMLSpanElement>(null);
   const shownBlinks = React.useRef(blinks);
 
@@ -62,11 +75,11 @@ function PeerEyes({ hue, look, asleep = false, blinks = 0, className, ...props }
     }
   }, [blinks, asleep]);
 
-  // Asleep, the eyes settle a little low.
-  const x = asleep ? 0 : look.x * 4;
-  const y = asleep ? 1.5 : look.y * 4;
+  // The eyes move within the character. Asleep, they settle near the bottom.
+  const x = asleep ? 0 : look.x * 5;
+  const y = asleep ? 6 : look.y * 4;
   const eye = cn(
-    "h-2.5 w-1.5 rounded-full bg-presence-eye transition-[scale] duration-300",
+    "h-2.75 w-1.25 rounded-full bg-presence-eye transition-[scale] duration-300",
     asleep && "scale-y-20",
   );
 
@@ -80,24 +93,35 @@ function PeerEyes({ hue, look, asleep = false, blinks = 0, className, ...props }
         "--eyes-y": `${y.toFixed(2)}px`,
       }}
       className={cn(
-        "relative flex size-7 shrink-0 items-center justify-center rounded-[9px] bg-peer select-none",
+        "group/peer relative inline-flex h-6 min-w-8.5 shrink-0 items-center justify-center rounded-md bg-peer select-none",
         className,
       )}
       {...props}
     >
-      <span
-        ref={eyesRef}
-        aria-hidden="true"
-        className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
-      >
-        <span className={eye} />
-        <span className={eye} />
+      <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover/peer:opacity-0">
+        <span
+          ref={eyesRef}
+          className="flex translate-x-(--eyes-x) translate-y-(--eyes-y) gap-1.25 transition-[translate] duration-200 ease-out motion-reduce:transition-none"
+        >
+          <span className={eye} />
+          <span className={eye} />
+        </span>
       </span>
-      {/* A pseudo-element, so the "z" isn't part of the text. */}
+      {/* Grows from nothing to the name's width, widening the character. A pseudo-element, so
+          the name isn't part of the text: the character is decoration, labelled elsewhere. */}
+      <span className="grid grid-cols-[0fr] opacity-0 transition-[grid-template-columns,opacity] duration-200 ease-out group-hover/peer:grid-cols-[1fr] group-hover/peer:opacity-100 motion-reduce:transition-none">
+        <span className="min-w-0 overflow-hidden">
+          <span
+            data-name={name}
+            className="block px-2 text-xs leading-none font-medium whitespace-nowrap text-presence-foreground before:content-[attr(data-name)]"
+          />
+        </span>
+      </span>
+      {/* Also a pseudo-element. */}
       {asleep && (
         <span
           aria-hidden="true"
-          className="absolute -top-2.5 -right-1.5 animate-doze text-[10px] leading-none font-semibold text-muted-foreground before:content-['z'] motion-reduce:animate-none"
+          className="absolute -top-2.5 -right-1.5 animate-doze text-[10px] leading-none font-semibold text-muted-foreground transition-opacity group-hover/peer:opacity-0 before:content-['z'] motion-reduce:animate-none"
         />
       )}
     </span>
