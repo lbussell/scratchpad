@@ -1,9 +1,11 @@
-import { LogOutIcon, MonitorIcon, MoonIcon, PencilIcon, SunIcon } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { LogOutIcon, MonitorIcon, MoonIcon, PencilIcon, SendIcon, SunIcon } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ColorSwatches } from "@/components/ui/color-swatches";
 import {
   Field,
+  FieldContent,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -20,16 +22,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   type Color,
   HUES,
   isPeerStyle,
+  isTimeOfDay,
   MAX_NAME_LENGTH,
   normalizeName,
   type PeerStyle,
+  type TimeOfDay,
 } from "../../shared/schema.ts";
 import { useCurrentUser } from "../hooks/useCurrentUser.ts";
 import { useTheme } from "../hooks/useTheme.ts";
+import {
+  currentSubscription,
+  fetchServerKey,
+  pushSupport,
+  sendTestNotification,
+  stopNotificationsOnLogout,
+  subscribe,
+  unsubscribe,
+} from "../push.ts";
 import { forgetSavedSession, updateProfile } from "../session.ts";
 import { isTheme, type Theme } from "../theme.ts";
 
@@ -62,6 +76,12 @@ export function SettingsPage({ logoutUrl }: { logoutUrl: string | null }) {
           <ColorSetting />
           <ThemeSetting />
           <PeerStyleSetting />
+        </FieldSet>
+        <FieldSeparator />
+        <FieldSet>
+          <FieldLegend>Reminders</FieldLegend>
+          <NotificationsSetting />
+          <ReminderTimeSetting />
         </FieldSet>
         <FieldSeparator />
         <FieldSet>
@@ -186,8 +206,11 @@ function AccountSetting({ logoutUrl }: { logoutUrl: string | null }) {
           method="post"
           action={logoutUrl}
           className="flex justify-end"
-          // So the app can't open offline as you afterwards.
-          onSubmit={forgetSavedSession}
+          // So the app can't open offline as you afterwards, or remind you here.
+          onSubmit={() => {
+            forgetSavedSession();
+            stopNotificationsOnLogout();
+          }}
         >
           <Button type="submit" variant="outline">
             <LogOutIcon />
@@ -312,6 +335,191 @@ function PeerStyleSetting() {
             ))}
           </SelectContent>
         </Select>
+        {error !== undefined && <FieldError>{error}</FieldError>}
+      </div>
+    </Field>
+  );
+}
+
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Something went wrong";
+
+/**
+ * Whether this device shows reminders. Each device is turned on separately, and only some can:
+ * on iPhone and iPad, only the app added to the Home Screen.
+ */
+function NotificationsSetting() {
+  const [support] = useState(pushSupport);
+  if (support === "supported") return <NotificationsSwitch />;
+  return (
+    <Field orientation="horizontal">
+      <FieldContent>
+        <FieldTitle>Notifications</FieldTitle>
+        <FieldDescription>{UNAVAILABLE[support]}</FieldDescription>
+      </FieldContent>
+    </Field>
+  );
+}
+
+/** Turns notifications on and off, on a device that can have them. */
+function NotificationsSwitch() {
+  // Undefined until we know.
+  const [subscription, setSubscription] = useState<PushSubscription | null>();
+  const [permission, setPermission] = useState(() => Notification.permission);
+  // Fetched ahead, because Safari only asks to allow notifications while handling the tap.
+  const [serverKey, setServerKey] = useState<string>();
+  const [isBusy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const [testSent, setTestSent] = useState(false);
+
+  useEffect(() => {
+    let isCurrent = true;
+    currentSubscription().then(
+      (found) => isCurrent && setSubscription(found),
+      () => isCurrent && setSubscription(null),
+    );
+    // Offline, it can't be turned on anyway: the server has to hear about it.
+    fetchServerKey().then(
+      (key) => isCurrent && setServerKey(key),
+      () => undefined,
+    );
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const turnOn = async () => {
+    if (serverKey === undefined) {
+      setError("Couldn’t reach the server. Try again when you’re online.");
+      return;
+    }
+    setBusy(true);
+    setError(undefined);
+    try {
+      // First, while still handling the tap.
+      const allowed = await subscribe(serverKey);
+      setPermission(Notification.permission);
+      if (allowed) setSubscription(await currentSubscription());
+    } catch (subscribeError) {
+      setError(errorMessage(subscribeError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const turnOff = async () => {
+    setBusy(true);
+    setError(undefined);
+    try {
+      await unsubscribe();
+      setSubscription(null);
+      setTestSent(false);
+    } catch (unsubscribeError) {
+      setError(errorMessage(unsubscribeError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendTest = async () => {
+    if (!subscription) return;
+    setError(undefined);
+    setTestSent(false);
+    try {
+      await sendTestNotification(subscription);
+      setTestSent(true);
+    } catch (testError) {
+      setError(errorMessage(testError));
+    }
+  };
+
+  const isOn = Boolean(subscription);
+  const isBlocked = permission === "denied" && !isOn;
+
+  return (
+    <>
+      <Field orientation="horizontal">
+        <FieldContent>
+          <FieldLabel htmlFor="notifications">Notifications</FieldLabel>
+          <FieldDescription>
+            {isBlocked
+              ? "Notifications are blocked. Allow them for Scratchpad in your device’s settings."
+              : "Remind me on this device when to-dos are due."}
+          </FieldDescription>
+        </FieldContent>
+        <Switch
+          id="notifications"
+          checked={isOn}
+          disabled={subscription === undefined || isBusy || isBlocked}
+          onCheckedChange={(checked) => void (checked ? turnOn() : turnOff())}
+        />
+      </Field>
+      {isOn && (
+        <div className="flex items-center justify-end gap-3">
+          {testSent && <span className="text-sm text-muted-foreground">Sent</span>}
+          <Button variant="outline" onClick={() => void sendTest()}>
+            <SendIcon />
+            Send a test
+          </Button>
+        </div>
+      )}
+      {error !== undefined && <FieldError className="text-right">{error}</FieldError>}
+    </>
+  );
+}
+
+const UNAVAILABLE: Record<Exclude<ReturnType<typeof pushSupport>, "supported">, string> = {
+  "needs-home-screen":
+    "To get reminders on iPhone or iPad, add Scratchpad to your Home Screen (in Safari, Share, then Add to Home Screen) and open it from there.",
+  development: "Notifications only work in production builds, which have a service worker.",
+  unsupported: "This browser can’t show notifications.",
+};
+
+/** When reminders come for to-dos due on a day without a time. Applies as you pick. */
+function ReminderTimeSetting() {
+  const { user, setUser } = useCurrentUser();
+  // What's in the field, which can be blank or half-typed for a moment.
+  const [draft, setDraft] = useState(user.reminderTime);
+  const [error, setError] = useState<string>();
+  // Only the latest pick's response counts, if several are in flight.
+  const latestRequest = useRef(0);
+
+  const choose = async (reminderTime: TimeOfDay) => {
+    const request = ++latestRequest.current;
+    const previous = user;
+    setUser({ ...user, reminderTime });
+    setError(undefined);
+    try {
+      const updated = await updateProfile({ reminderTime });
+      if (request === latestRequest.current) setUser(updated);
+    } catch (saveError) {
+      if (request !== latestRequest.current) return;
+      setUser(previous);
+      setDraft(previous.reminderTime);
+      setError(errorMessage(saveError));
+    }
+  };
+
+  return (
+    <Field orientation="horizontal" className="items-start">
+      <FieldContent>
+        <FieldLabel htmlFor="reminder-time">Reminder time</FieldLabel>
+        <FieldDescription>For to-dos due on a day, without a time.</FieldDescription>
+      </FieldContent>
+      <div className="flex flex-col items-end gap-2">
+        <Input
+          id="reminder-time"
+          type="time"
+          className="w-36"
+          value={draft}
+          onChange={(event) => {
+            const { value } = event.target;
+            setDraft(value);
+            if (isTimeOfDay(value) && value !== user.reminderTime) void choose(value);
+          }}
+          // Cleared and left: back to what it was.
+          onBlur={() => setDraft(user.reminderTime)}
+        />
         {error !== undefined && <FieldError>{error}</FieldError>}
       </div>
     </Field>

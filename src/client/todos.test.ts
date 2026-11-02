@@ -8,7 +8,9 @@ import {
   doneGroup,
   dueGroup,
   dueLabel,
+  dueOf,
   formatDue,
+  formatTime,
   groupTodos,
   isOverdue,
   newTodoList,
@@ -20,11 +22,12 @@ import {
 
 // Sunday, 1 November 2026.
 const today = "2026-11-01";
-/** An hour of a day, here. */
-const at = (day: string, hour: number) => {
+/** A time on a day, here. */
+const dateAt = (day: string, hour: number, minute = 0) => {
   const [year = 0, month = 1, date = 1] = day.split("-").map(Number);
-  return new Date(year, month - 1, date, hour).getTime();
+  return new Date(year, month - 1, date, hour, minute);
 };
+const at = (day: string, hour: number) => dateAt(day, hour).getTime();
 
 /** Each group's ID and its to-dos' IDs. */
 const ids = (groups: { id: string; todos: { id: string }[] }[]) =>
@@ -56,10 +59,6 @@ describe("dueGroup", () => {
     assert.equal(dueGroup("2026-12-01", today), "month");
     assert.equal(dueGroup("2026-12-02", today), "later");
   });
-
-  it("puts to-dos without a due date last", () => {
-    assert.equal(dueGroup(undefined, today), "later");
-  });
 });
 
 describe("doneGroup", () => {
@@ -72,20 +71,37 @@ describe("doneGroup", () => {
 });
 
 describe("snoozeTo", () => {
-  it("moves to tomorrow", () => {
-    assert.equal(snoozeTo("tomorrow", today), "2026-11-02");
+  const morning = dateAt(today, 9, 10);
+
+  it("moves to a time later today", () => {
+    assert.deepEqual(snoozeTo("15-minutes", morning), { due: today, time: "09:25" });
+    assert.deepEqual(snoozeTo("1-hour", morning), { due: today, time: "10:10" });
+    assert.deepEqual(snoozeTo("2-hours", morning), { due: today, time: "11:10" });
+    assert.deepEqual(snoozeTo("4-hours", morning), { due: today, time: "13:10" });
+  });
+
+  it("moves past midnight late in the evening", () => {
+    assert.deepEqual(snoozeTo("4-hours", dateAt(today, 22, 30)), {
+      due: "2026-11-02",
+      time: "02:30",
+    });
+  });
+
+  it("moves to a day, without a time", () => {
+    assert.deepEqual(snoozeTo("today", morning), { due: today });
+    assert.deepEqual(snoozeTo("tomorrow", morning), { due: "2026-11-02" });
   });
 
   it("moves to the next Monday, a week away on a Monday", () => {
-    assert.equal(snoozeTo("next-week", today), "2026-11-02");
-    assert.equal(snoozeTo("next-week", "2026-11-02"), "2026-11-09");
-    assert.equal(snoozeTo("next-week", "2026-11-07"), "2026-11-09");
+    assert.deepEqual(snoozeTo("next-week", morning), { due: "2026-11-02" });
+    assert.deepEqual(snoozeTo("next-week", dateAt("2026-11-02", 9)), { due: "2026-11-09" });
+    assert.deepEqual(snoozeTo("next-week", dateAt("2026-11-07", 9)), { due: "2026-11-09" });
   });
 
   it("moves to the next Saturday, a week away on a Saturday", () => {
-    assert.equal(snoozeTo("next-weekend", today), "2026-11-07");
-    assert.equal(snoozeTo("next-weekend", "2026-11-06"), "2026-11-07");
-    assert.equal(snoozeTo("next-weekend", "2026-11-07"), "2026-11-14");
+    assert.deepEqual(snoozeTo("next-weekend", morning), { due: "2026-11-07" });
+    assert.deepEqual(snoozeTo("next-weekend", dateAt("2026-11-06", 9)), { due: "2026-11-07" });
+    assert.deepEqual(snoozeTo("next-weekend", dateAt("2026-11-07", 9)), { due: "2026-11-14" });
   });
 });
 
@@ -106,10 +122,32 @@ describe("formatDue", () => {
 
 describe("dueLabel", () => {
   it("reads as a phrase", () => {
-    assert.equal(dueLabel(today, today, "en-US"), "Due today");
-    assert.equal(dueLabel("2026-10-31", today, "en-US"), "Due yesterday");
-    assert.equal(dueLabel("2026-11-06", today, "en-US"), "Due Friday");
-    assert.equal(dueLabel("2026-11-08", today, "en-US"), "Due Nov 8");
+    assert.equal(dueLabel({ due: today }, today, "en-US"), "Due today");
+    assert.equal(dueLabel({ due: "2026-10-31" }, today, "en-US"), "Due yesterday");
+    assert.equal(dueLabel({ due: "2026-11-06" }, today, "en-US"), "Due Friday");
+    assert.equal(dueLabel({ due: "2026-11-08" }, today, "en-US"), "Due Nov 8");
+  });
+
+  it("gives the time, if there is one", () => {
+    assert.equal(dueLabel({ due: today, time: "15:05" }, today, "en-US"), "Due today at 3:05 PM");
+    assert.equal(
+      dueLabel({ due: "2026-11-06", time: "09:00" }, today, "en-US"),
+      "Due Friday at 9:00 AM",
+    );
+  });
+});
+
+describe("formatTime", () => {
+  it("says the time as the locale does", () => {
+    assert.equal(formatTime("00:30", "en-US"), "12:30 AM");
+    assert.equal(formatTime("18:45", "en-GB"), "18:45");
+  });
+});
+
+describe("dueOf", () => {
+  it("is the day the to-do was added, if it has no due date", () => {
+    assert.equal(dueOf({ text: "", createdAt: at("2026-10-20", 15) }), "2026-10-20");
+    assert.equal(dueOf({ text: "", createdAt: 0, due: today }), today);
   });
 });
 
@@ -120,13 +158,18 @@ describe("isOverdue", () => {
     assert.equal(isOverdue({ ...todo, due: today }, today), false);
     assert.equal(isOverdue({ ...todo, doneAt: 1 }, today), false);
   });
+
+  it("counts a to-do without a due date as due the day it was added", () => {
+    assert.equal(isOverdue({ text: "", createdAt: at("2026-10-20", 15) }, today), true);
+    assert.equal(isOverdue({ text: "", createdAt: at(today, 15) }, today), false);
+  });
 });
 
 /** A list of to-dos named by their IDs. */
 function list(todos: Record<string, Partial<Todo>>): TodoListDoc {
   const doc = newTodoList();
   for (const [id, todo] of Object.entries(todos)) {
-    doc.todos[id] = { text: id, createdAt: 0, ...todo };
+    doc.todos[id] = { text: id, createdAt: 0, due: "2027-01-01", ...todo };
   }
   return doc;
 }
@@ -168,36 +211,55 @@ describe("groupTodos", () => {
   });
 });
 
+const add = (doc: TodoListDoc, id: string, createdAt: number) =>
+  addTodo(doc, id, { text: id.toUpperCase(), due: today }, createdAt);
+
 describe("changes", () => {
-  it("reopens a done to-do where it was", () => {
+  it("adds a to-do due on the day given", () => {
     const doc = newTodoList();
-    addTodo(doc, "a", "A", 1);
-    addTodo(doc, "b", "B", 2);
-    setDone(doc, "a", true, at(today, 9));
-    assert.deepEqual(ids(groupTodos(doc.todos, today).open), [["later", ["b"]]]);
-    setDone(doc, "a", false);
-    assert.equal("doneAt" in (doc.todos["a"] ?? {}), false);
-    assert.deepEqual(ids(groupTodos(doc.todos, today).open), [["later", ["a", "b"]]]);
+    add(doc, "a", 1);
+    assert.deepEqual(doc.todos["a"], { text: "A", createdAt: 1, due: today });
   });
 
-  it("removes a due date or assignee rather than storing nothing", () => {
+  it("reopens a done to-do where it was", () => {
     const doc = newTodoList();
-    addTodo(doc, "a", "A");
-    setDue(doc, "a", today);
-    setAssignee(doc, "a", "user");
+    add(doc, "a", 1);
+    add(doc, "b", 2);
+    setDone(doc, "a", true, at(today, 9));
+    assert.deepEqual(ids(groupTodos(doc.todos, today).open), [["today", ["b"]]]);
+    setDone(doc, "a", false);
+    assert.equal("doneAt" in (doc.todos["a"] ?? {}), false);
+    assert.deepEqual(ids(groupTodos(doc.todos, today).open), [["today", ["a", "b"]]]);
+  });
+
+  it("moves a to-do to a time, or to a day without one", () => {
+    const doc = newTodoList();
+    add(doc, "a", 1);
     const todo = doc.todos["a"];
     assert.ok(todo);
-    assert.equal(todo.due, today);
-    assert.equal(todo.assignee, "user");
-    setDue(doc, "a", null);
+    setDue(doc, "a", { due: "2026-11-02", time: "09:30" });
+    assert.equal(todo.due, "2026-11-02");
+    assert.equal(todo.time, "09:30");
+    setDue(doc, "a", { due: "2026-11-03" });
+    assert.equal(todo.due, "2026-11-03");
+    assert.equal("time" in todo, false);
+  });
+
+  it("removes an assignee rather than storing nothing", () => {
+    const doc = newTodoList();
+    add(doc, "a", 1);
+    const todo = doc.todos["a"];
+    assert.ok(todo);
+    setAssignee(doc, "a", "someone");
+    assert.equal(todo.assignee, "someone");
     setAssignee(doc, "a", null);
-    assert.deepEqual(Object.keys(todo).toSorted(), ["createdAt", "text"]);
+    assert.equal("assignee" in todo, false);
   });
 
   it("ignores changes to a to-do someone else deleted", () => {
     const doc = newTodoList();
     setDone(doc, "gone", true);
-    setDue(doc, "gone", today);
+    setDue(doc, "gone", { due: today });
     assert.deepEqual(doc.todos, {});
   });
 });

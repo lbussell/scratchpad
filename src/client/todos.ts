@@ -1,4 +1,4 @@
-import type { Person, Todo, TodoListDoc } from "../shared/schema.ts";
+import type { Person, TimeOfDay, Todo, TodoListDoc } from "../shared/schema.ts";
 
 /** A calendar day, `YYYY-MM-DD`, in the viewer's time zone. Compares correctly as a string. */
 export type Day = string;
@@ -32,6 +32,20 @@ export function isDay(value: unknown): value is Day {
   return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+/** The time on the clock at `date`, here. */
+export function timeOf(date: Date): TimeOfDay {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** "3:15 PM", or however the locale says it. */
+export function formatTime(time: TimeOfDay, locale?: string): string {
+  const [hours = 0, minutes = 0] = time.split(":").map(Number);
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 // Grouping ---------------------------------------------------------------------------------------
 
 /** Open to-dos, grouped by when they're due. Overdue ones are due today. */
@@ -52,9 +66,8 @@ export const DONE_GROUPS = [
 ] as const;
 export type DoneGroup = (typeof DONE_GROUPS)[number]["id"];
 
-/** Which group an open to-do goes in. To-dos without a due date go last. */
-export function dueGroup(due: Day | undefined, today: Day): DueGroup {
-  if (due === undefined) return "later";
+/** Which group an open to-do goes in. */
+export function dueGroup(due: Day, today: Day): DueGroup {
   if (due <= today) return "today";
   if (due === addDays(today, 1)) return "tomorrow";
   if (due <= addDays(today, 7)) return "week";
@@ -70,8 +83,13 @@ export function doneGroup(doneAt: number, today: Day): DoneGroup {
   return "earlier";
 }
 
+/** The day a to-do is due. Those from before every to-do had one are due the day they were added. */
+export function dueOf(todo: Todo): Day {
+  return todo.due ?? dayOf(new Date(todo.createdAt));
+}
+
 export function isOverdue(todo: Todo, today: Day): boolean {
-  return todo.doneAt === undefined && todo.due !== undefined && todo.due < today;
+  return todo.doneAt === undefined && dueOf(todo) < today;
 }
 
 export interface TodoEntry {
@@ -106,7 +124,7 @@ export function groupTodos(todos: Record<string, Todo>, today: Day): GroupedTodo
     open: DUE_GROUPS.map(({ id, label }) => ({
       id,
       label,
-      todos: open.filter(({ todo }) => dueGroup(todo.due, today) === id),
+      todos: open.filter(({ todo }) => dueGroup(dueOf(todo), today) === id),
     })).filter((group) => group.todos.length > 0),
     done: DONE_GROUPS.map(({ id, label }) => ({
       id,
@@ -120,8 +138,18 @@ const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 // Due dates --------------------------------------------------------------------------------------
 
-/** Quick ways to set or move a due date. */
+/** When a to-do is due: a day, and maybe a time on it. Without one, reminders use each person's. */
+export interface When {
+  due: Day;
+  time?: TimeOfDay;
+}
+
+/** Quick ways to move a to-do: a little later, or to another day. */
 export const SNOOZES = [
+  { id: "15-minutes", label: "15 minutes" },
+  { id: "1-hour", label: "1 hour" },
+  { id: "2-hours", label: "2 hours" },
+  { id: "4-hours", label: "4 hours" },
   { id: "today", label: "Today" },
   { id: "tomorrow", label: "Tomorrow" },
   { id: "next-week", label: "Next week" },
@@ -133,19 +161,34 @@ const SATURDAY = 6;
 const MONDAY = 1;
 
 /**
- * The day a snooze moves a to-do to. Next week starts on the next Monday and next weekend on the
- * next Saturday, never today.
+ * When a snooze moves a to-do to. The ones in minutes or hours count from now, to that time
+ * (late in the evening, that's tomorrow); the others move it to a day, without a time. Next week
+ * starts on the next Monday and next weekend on the next Saturday, never today.
  */
-export function snoozeTo(snooze: Snooze, today: Day): Day {
-  return SNOOZE_DAYS[snooze](today);
+export function snoozeTo(snooze: Snooze, now: Date): When {
+  return SNOOZE_TO[snooze](now);
 }
 
-const SNOOZE_DAYS: Record<Snooze, (today: Day) => Day> = {
-  today: (today) => today,
-  tomorrow: (today) => addDays(today, 1),
-  "next-week": (today) => nextWeekday(today, MONDAY),
-  "next-weekend": (today) => nextWeekday(today, SATURDAY),
+const SNOOZE_TO: Record<Snooze, (now: Date) => When> = {
+  "15-minutes": (now) => inMinutes(now, 15),
+  "1-hour": (now) => inMinutes(now, 60),
+  "2-hours": (now) => inMinutes(now, 2 * 60),
+  "4-hours": (now) => inMinutes(now, 4 * 60),
+  today: (now) => ({ due: dayOf(now) }),
+  tomorrow: (now) => ({ due: addDays(dayOf(now), 1) }),
+  "next-week": (now) => ({ due: nextWeekday(dayOf(now), MONDAY) }),
+  "next-weekend": (now) => ({ due: nextWeekday(dayOf(now), SATURDAY) }),
 };
+
+function inMinutes(now: Date, minutes: number): When {
+  const later = new Date(now.getTime() + minutes * 60_000);
+  return { due: dayOf(later), time: timeOf(later) };
+}
+
+/** Whether a snooze would leave the to-do where it is. */
+export function isSameWhen(a: When, b: When): boolean {
+  return a.due === b.due && a.time === b.time;
+}
 
 function nextWeekday(today: Day, weekday: number): Day {
   const days = (weekday - dateOf(today).getDay() + 7) % 7;
@@ -172,10 +215,11 @@ export function formatDue(due: Day, today: Day, locale?: string): string {
   });
 }
 
-/** "Due today", "Due Friday", "Due Nov 8": what's shown under a to-do. */
-export function dueLabel(due: Day, today: Day, locale?: string): string {
-  const when = formatDue(due, today, locale);
-  return `Due ${RELATIVE_DAYS.has(when) ? when.toLowerCase() : when}`;
+/** "Due today", "Due Friday at 3:15 PM", "Due Nov 8": what's shown under a to-do. */
+export function dueLabel({ due, time }: When, today: Day, locale?: string): string {
+  const day = formatDue(due, today, locale);
+  const label = `Due ${RELATIVE_DAYS.has(day) ? day.toLowerCase() : day}`;
+  return time === undefined ? label : `${label} at ${formatTime(time, locale)}`;
 }
 
 const RELATIVE_DAYS = new Set(["Today", "Tomorrow", "Yesterday"]);
@@ -193,8 +237,14 @@ export function findAssignee(
 // Call these inside handle.change. Each finds the to-do by ID, and does nothing if someone else
 // has deleted it meanwhile.
 
-export function addTodo(doc: TodoListDoc, id: string, text: string, now = Date.now()): void {
-  doc.todos[id] = { text, createdAt: now };
+/** Adds a to-do. New to-dos are due today, so nothing is added without a day to be reminded. */
+export function addTodo(
+  doc: TodoListDoc,
+  id: string,
+  { text, due }: { text: string; due: Day },
+  now = Date.now(),
+): void {
+  doc.todos[id] = { text, createdAt: now, due };
 }
 
 export function deleteTodo(doc: TodoListDoc, id: string): void {
@@ -209,11 +259,13 @@ export function setDone(doc: TodoListDoc, id: string, done: boolean, now = Date.
   else delete todo.doneAt;
 }
 
-export function setDue(doc: TodoListDoc, id: string, due: Day | null): void {
+/** Moves a to-do to another day, and time if any. There's no removing it: everything is due. */
+export function setDue(doc: TodoListDoc, id: string, { due, time }: When): void {
   const todo = doc.todos[id];
   if (!todo) return;
-  if (due === null) delete todo.due;
-  else todo.due = due;
+  todo.due = due;
+  if (time === undefined) delete todo.time;
+  else todo.time = time;
 }
 
 export function setAssignee(doc: TodoListDoc, id: string, assignee: string | null): void {

@@ -1,13 +1,15 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import {
+  DEFAULT_REMINDER_TIME,
   HUES,
   isPeerStyle,
+  isTimeOfDay,
   MAX_NAME_LENGTH,
   type Person,
   type UserProfile,
 } from "../shared/schema.ts";
 import type { Identity } from "./auth.ts";
+import { JsonFileWriter, readJsonFile } from "./files.ts";
 
 type StoredUser = Omit<UserProfile, "id">;
 
@@ -16,26 +18,22 @@ type StoredUser = Omit<UserProfile, "id">;
  * Automerge document so that each user can only change their own.
  */
 export class UserStore {
-  readonly #file: string;
+  readonly #file: JsonFileWriter;
   readonly #users: Map<string, StoredUser>;
-  #saving: Promise<void> = Promise.resolve();
 
   private constructor(file: string, users: Map<string, StoredUser>) {
-    this.#file = file;
+    this.#file = new JsonFileWriter(file);
     this.#users = users;
   }
 
   static async open(dataDir: string): Promise<UserStore> {
     const file = path.join(dataDir, "users.json");
     const users = new Map<string, StoredUser>();
-    const contents = await fs.readFile(file, "utf8").catch(() => undefined);
-    if (contents !== undefined) {
-      const parsed: unknown = JSON.parse(contents);
-      if (typeof parsed === "object" && parsed !== null) {
-        for (const [id, value] of Object.entries(parsed)) {
-          const user = parseStoredUser(value);
-          if (user) users.set(id, user);
-        }
+    const parsed = await readJsonFile(file);
+    if (typeof parsed === "object" && parsed !== null) {
+      for (const [id, value] of Object.entries(parsed)) {
+        const user = parseStoredUser(value);
+        if (user) users.set(id, user);
       }
     }
     return new UserStore(file, users);
@@ -54,6 +52,7 @@ export class UserStore {
           name: defaultName(identity.email),
           hue: pickHue(hues),
           peerStyle: "eyes",
+          reminderTime: DEFAULT_REMINDER_TIME,
         };
     this.#users.set(identity.id, user);
     await this.#save();
@@ -67,13 +66,23 @@ export class UserStore {
       .toSorted((a, b) => a.name.localeCompare(b.name));
   }
 
+  /** When this user wants reminders for to-dos without a time, or undefined if we don't know them. */
+  reminderTime(id: string): string | undefined {
+    return this.#users.get(id)?.reminderTime;
+  }
+
+  /** The user's email, as a contact for the push services that deliver their notifications. */
+  email(id: string): string | undefined {
+    return this.#users.get(id)?.email;
+  }
+
   /**
    * Changes are applied as given, so validate them first (see normalizeName, isValidColor,
-   * isPeerStyle).
+   * isPeerStyle, isTimeOfDay).
    */
   async update(
     identity: Identity,
-    changes: Partial<Pick<UserProfile, "name" | "hue" | "peerStyle">>,
+    changes: Partial<Pick<UserProfile, "name" | "hue" | "peerStyle" | "reminderTime">>,
   ): Promise<UserProfile> {
     const user = { ...(await this.ensure(identity)), ...changes };
     const { id, ...stored } = user;
@@ -83,11 +92,7 @@ export class UserStore {
   }
 
   #save(): Promise<void> {
-    const contents = `${JSON.stringify(Object.fromEntries(this.#users), null, 2)}\n`;
-    // Serialize writes, and keep going after a failed one.
-    const write = () => writeFileAtomically(this.#file, contents);
-    this.#saving = this.#saving.then(write, write);
-    return this.#saving;
+    return this.#file.write(Object.fromEntries(this.#users));
   }
 }
 
@@ -118,13 +123,6 @@ function hueDistance(a: number, b: number): number {
   return Math.min(difference, 360 - difference);
 }
 
-async function writeFileAtomically(file: string, contents: string): Promise<void> {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  const temporary = `${file}.${process.pid}.tmp`;
-  await fs.writeFile(temporary, contents);
-  await fs.rename(temporary, file);
-}
-
 /** A user from the file, filling in settings added since it was saved. */
 function parseStoredUser(value: unknown): StoredUser | undefined {
   if (
@@ -140,5 +138,9 @@ function parseStoredUser(value: unknown): StoredUser | undefined {
     return undefined;
   }
   const peerStyle = "peerStyle" in value && isPeerStyle(value.peerStyle) ? value.peerStyle : "eyes";
-  return { email: value.email, name: value.name, hue: value.hue, peerStyle };
+  const reminderTime =
+    "reminderTime" in value && isTimeOfDay(value.reminderTime)
+      ? value.reminderTime
+      : DEFAULT_REMINDER_TIME;
+  return { email: value.email, name: value.name, hue: value.hue, peerStyle, reminderTime };
 }

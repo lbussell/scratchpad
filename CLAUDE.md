@@ -26,11 +26,22 @@ scripts/    One-off tools (generate-icons.ts renders the Home Screen icons from 
 - To-do lists keep their to-dos in a map by ID, so edits find the right one while others change
   the list. Grouping by due date and snoozing are in `src/client/todos.ts`. Assignees are user IDs;
   `/api/users` lists everyone who has signed in, saved on each device for offline use.
+- Every to-do is due on a day (new ones today; old ones without a `due` count as due the day they
+  were added), and maybe at a time. Both are wall-clock values with no time zone, read wherever
+  each person is.
+- Reminders are Web Push notifications sent by the server (`src/server/reminders.ts`), because
+  neither iOS nor any browser lets a page schedule one itself. Every 30 seconds it sends reminders
+  that came due since its last check, which it saves in `data/reminders.json`, to the assignee's
+  devices (everyone's while unassigned), at the to-do's time or the user's reminder time
+  (Settings, default 6 AM) in each device's time zone, then every morning while it's overdue. Devices subscribe from Settings
+  (`src/client/push.ts`); `src/client/sw.ts` shows the notifications. iOS only allows push in the
+  app opened from the Home Screen, and each push must show a notification.
 - The root document's `positions` (a parent folder and a fractional index for each document and
   folder) and `folders` arrange the sidebar. Change them only through `src/client/tree.ts`, which
   also tidies what concurrent moves leave behind. Deleting a document only removes it from the root
   document; the document itself stays in storage.
-- The server stores documents and `users.json` in `data/` (`DATA_DIR`). Delete it to start fresh.
+- The server stores documents, `users.json`, and its push keys and subscriptions in `data/`
+  (`DATA_DIR`). Delete it to start fresh.
 - Identity comes from proxy headers named by `AUTH_USER_ID_HEADER`/`AUTH_EMAIL_HEADER`
   (`docs/deploy.md`), which production requires. Outside production, requests without them
   belong to `DEV_USER_ID`/`DEV_USER_EMAIL`. Identity headers win, which is how e2e tests act as

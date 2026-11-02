@@ -118,6 +118,20 @@ describe("peer style", () => {
       name: "Bob",
       hue: 30,
       peerStyle: "eyes",
+      reminderTime: "06:00",
     });
+  });
+});
+
+describe("reminder time", () => {
+  it("starts at 6 AM, can change, and is kept", async () => {
+    const dir = await tempDir();
+    const store = await UserStore.open(dir);
+    const ada = { id: "u1", email: "ada@example.com" };
+    assert.equal((await store.ensure(ada)).reminderTime, "06:00");
+    await store.update(ada, { reminderTime: "07:30" });
+    assert.equal(store.reminderTime("u1"), "07:30");
+    assert.equal((await UserStore.open(dir)).reminderTime("u1"), "07:30");
+    assert.equal(store.reminderTime("nobody"), undefined);
   });
 });

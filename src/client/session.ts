@@ -1,5 +1,6 @@
 import { isValidAutomergeUrl } from "@automerge/automerge-repo";
 import {
+  DEFAULT_REMINDER_TIME,
   isUserProfile,
   PROFILE_API_PATH,
   SESSION_API_PATH,
@@ -92,10 +93,19 @@ function readSavedSession(): SessionResponse | undefined {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const parsed: unknown = stored === null ? undefined : JSON.parse(stored);
-    return isSessionResponse(parsed) ? parsed : undefined;
+    const upgraded = withNewSettings(parsed);
+    return isSessionResponse(upgraded) ? upgraded : undefined;
   } catch {
     return undefined;
   }
+}
+
+/** A session saved by an older version, with the settings added since then. */
+function withNewSettings(saved: unknown): unknown {
+  if (typeof saved !== "object" || saved === null || !("user" in saved)) return saved;
+  const { user } = saved;
+  if (typeof user !== "object" || user === null || "reminderTime" in user) return saved;
+  return { ...saved, user: { ...user, reminderTime: DEFAULT_REMINDER_TIME } };
 }
 
 /** Saves changes to the signed-in user's profile, returning the updated profile. */

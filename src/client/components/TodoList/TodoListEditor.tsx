@@ -47,7 +47,7 @@ export function TodoListEditor({ url }: { url: AutomergeUrl }) {
       // Renders the new row, and focuses it, before this returns: phones only open the keyboard
       // for focus that moves while handling the tap.
       flushSync(() => {
-        handle.change((list) => addTodo(list, id, ""));
+        handle.change((list) => addTodo(list, id, { text: "", due: today }));
         newTodoRef.current = id;
         setNewTodo(id);
       });
@@ -61,8 +61,6 @@ export function TodoListEditor({ url }: { url: AutomergeUrl }) {
       setNewTodo(null);
     },
   };
-  // Headings only help to tell groups apart: to-dos without due dates alone don't need one.
-  const showHeadings = open.some((group) => group.id !== "later");
 
   return (
     <div className="h-full overflow-y-auto">
@@ -77,9 +75,7 @@ export function TodoListEditor({ url }: { url: AutomergeUrl }) {
         )}
         {open.map((group) => (
           <section key={group.id} aria-label={group.label} className="flex flex-col gap-1.5">
-            {showHeadings && (
-              <h3 className="pl-11 text-sm font-medium text-muted-foreground">{group.label}</h3>
-            )}
+            <h3 className="pl-11 text-sm font-medium text-muted-foreground">{group.label}</h3>
             <TodoBox group={group} context={context} />
           </section>
         ))}

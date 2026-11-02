@@ -27,13 +27,21 @@ test("to-dos are grouped, assigned, and done, in sync between browsers", async (
   await alice.keyboard.press("Enter");
   // The empty one wasn't wanted after all.
   await expect(alice.getByRole("textbox", { name: "To-do" })).toHaveCount(2);
+  // Everything is due some day, today to begin with.
+  await expect(inGroup(alice, "Today", "Water plants")).toBeVisible();
+
+  // Snoozed to a time, which it shows.
+  const plants = todo(alice, "Water plants");
+  await plants.getByRole("button", { name: "Snooze" }).click();
+  await alice.getByRole("button", { name: /^1 hour / }).click();
+  await expect(plants.getByText(/^Due (today|tomorrow) at /)).toBeVisible();
 
   // Due tomorrow, and assigned to Bob.
   const trash = todo(alice, "Take out trash");
-  await trash.hover();
-  await trash.getByRole("button", { name: "Set due date" }).click();
+  await trash.getByRole("button", { name: "Snooze" }).click();
   await alice.getByRole("button", { name: /^Tomorrow / }).click();
   await expect(inGroup(alice, "Tomorrow", "Take out trash")).toBeVisible();
+  await trash.hover();
   await trash.getByRole("button", { name: "Assign" }).click();
   await alice.getByRole("menuitemradio", { name: `bob-${id}` }).click();
   await expect(

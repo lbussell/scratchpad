@@ -19,6 +19,11 @@ Scratchpad is a Progressive Web App. Open it in Safari on iPhone and choose
 The installed app opens without a connection and syncs your changes when you're
 back online.
 
+To get reminders for your to-dos, open **Settings** in the installed app and
+turn on **Notifications**. On iPhone and iPad, this only works in the app opened
+from the Home Screen (iOS 16.4 or later), not in a Safari tab. Each device is
+turned on separately.
+
 ## Deploying Scratchpad
 
 [![Deploy on exe.dev](https://raw.githubusercontent.com/boldsoftware/exe.dev/main/assets/buttons/deploy-on-exe-dev.png)](https://exe.dev/new?repo=https://github.com/lbussell/scratchpad)

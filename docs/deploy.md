@@ -37,7 +37,14 @@ You need Node.js 24 or later.
 
 3. Configure the proxy to forward requests to `http://127.0.0.1:8000`.
 
-The server stores all notes and user profiles in the `data/` directory.
+The server stores all notes and user profiles in the `data/` directory, along
+with what it needs for notifications: its push keys (`vapid-keys.json`), each
+device that has notifications turned on (`push-subscriptions.json`), and when it
+last sent reminders (`reminders.json`). Keep `vapid-keys.json`: with new keys,
+everyone has to turn notifications on again.
+
+The server sends notifications through the browsers' push services (Apple,
+Google, Mozilla), so it needs outbound HTTPS access to them.
 
 ## Configuration
 
@@ -52,6 +59,7 @@ The server reads these environment variables:
 | `PORT`                | `8000`                   | Port to listen on                                                      |
 | `HOST`                | All interfaces           | Address to listen on                                                   |
 | `DATA_DIR`            | `data`                   | Directory for notes and user profiles, relative to the repository root |
+| `PUSH_CONTACT`        | Each recipient's email   | `mailto:` or `https:` URL that push services can use to contact you    |
 
 ## Deploy on exe.dev
 

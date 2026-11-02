@@ -5,10 +5,16 @@ import expressStaticGzip from "express-static-gzip";
 import { WebSocketServer } from "ws";
 import {
   isPeerStyle,
+  isTimeOfDay,
   isValidColor,
   MAX_NAME_LENGTH,
   normalizeName,
   PROFILE_API_PATH,
+  PUSH_KEY_API_PATH,
+  PUSH_SUBSCRIPTION_API_PATH,
+  PUSH_TEST_API_PATH,
+  type PushKeyResponse,
+  type PushPayload,
   SESSION_API_PATH,
   type SessionResponse,
   SYNC_PATH,
@@ -17,6 +23,15 @@ import {
 } from "../shared/schema.ts";
 import { type Identity, identify, loginRedirectUrl } from "./auth.ts";
 import { config } from "./config.ts";
+import {
+  type DeviceSubscription,
+  isPushSubscriptionData,
+  isTimeZone,
+  loadVapidKeys,
+  PushSubscriptionStore,
+  sendPush,
+} from "./push.ts";
+import { ReminderScheduler, todosIn } from "./reminders.ts";
 import { createSyncRepo, ensureRootDoc } from "./repo.ts";
 import { UserStore } from "./users.ts";
 
@@ -41,6 +56,23 @@ httpServer.on("upgrade", (request, socket, head) => {
 const repo = createSyncRepo(wss, config.dataDir);
 const rootDocUrl = await ensureRootDoc(repo, config.dataDir);
 const users = await UserStore.open(config.dataDir);
+const devices = await PushSubscriptionStore.open(config.dataDir);
+const vapidKeys = await loadVapidKeys(config.dataDir);
+
+/** Sends a notification to a device, as the contact the deployment gave, or the device's user. */
+function notify(device: DeviceSubscription, payload: PushPayload) {
+  const contact = config.pushContact ?? `mailto:${users.email(device.userId) ?? ""}`;
+  return sendPush(device, payload, { keys: vapidKeys, contact });
+}
+
+const reminders = new ReminderScheduler({
+  dataDir: config.dataDir,
+  listTodos: () => todosIn(repo, rootDocUrl),
+  devices,
+  reminderTimeOf: (userId) => users.reminderTime(userId),
+  send: notify,
+});
+await reminders.start();
 
 // Everything requires a signed-in user. Visitors asking for a page go to the login page, if
 // there is one; everything else gets a 401.
@@ -82,9 +114,7 @@ app.get(USERS_API_PATH, async (request, response) => {
 
 // Only ever changes the requester's own profile.
 app.patch(PROFILE_API_PATH, express.json(), async (request, response) => {
-  const body: unknown = request.body;
-  const field = (key: string): unknown =>
-    typeof body === "object" && body !== null && key in body ? Reflect.get(body, key) : undefined;
+  const field = (key: string) => bodyField(request.body, key);
 
   const changes: UpdateProfileRequest = {};
   const rawName = field("name");
@@ -112,8 +142,73 @@ app.patch(PROFILE_API_PATH, express.json(), async (request, response) => {
     }
     changes.peerStyle = peerStyle;
   }
+  const reminderTime = field("reminderTime");
+  if (reminderTime !== undefined) {
+    if (!isTimeOfDay(reminderTime)) {
+      response.status(400).json({ error: "Reminder time must be HH:MM" });
+      return;
+    }
+    changes.reminderTime = reminderTime;
+  }
   response.json(await users.update(identityOf(request), changes));
 });
+
+// Notifications. A device subscribes with the server's public key, then saves its subscription
+// here, again each time the app starts (so its time zone stays current).
+app.get(PUSH_KEY_API_PATH, (_request, response) => {
+  const key: PushKeyResponse = { publicKey: vapidKeys.publicKey };
+  response.json(key);
+});
+
+app.post(PUSH_SUBSCRIPTION_API_PATH, express.json(), async (request, response) => {
+  const subscription = bodyField(request.body, "subscription");
+  const timeZone = bodyField(request.body, "timeZone");
+  if (!isPushSubscriptionData(subscription) || !isTimeZone(timeZone)) {
+    response.status(400).json({ error: "Needs a push subscription and a time zone" });
+    return;
+  }
+  const { endpoint, keys } = subscription;
+  const { id: userId } = await users.ensure(identityOf(request));
+  await devices.save({ endpoint, keys, userId, timeZone });
+  response.status(204).end();
+});
+
+// Only ever the requester's own devices.
+app.delete(PUSH_SUBSCRIPTION_API_PATH, express.json(), async (request, response) => {
+  const endpoint = bodyField(request.body, "endpoint");
+  if (typeof endpoint !== "string") {
+    response.status(400).json({ error: "Needs an endpoint" });
+    return;
+  }
+  await devices.remove(endpoint, identityOf(request).id);
+  response.status(204).end();
+});
+
+// So people can check that notifications reach their device.
+app.post(PUSH_TEST_API_PATH, express.json(), async (request, response) => {
+  const endpoint = bodyField(request.body, "endpoint");
+  const device = typeof endpoint === "string" ? devices.get(endpoint) : undefined;
+  if (!device || device.userId !== identityOf(request).id) {
+    response.status(404).json({ error: "This device isn’t set up for notifications" });
+    return;
+  }
+  const result = await notify(device, {
+    title: "Notifications are on",
+    body: "Reminders for your to-dos will show up like this.",
+    url: "/#settings",
+    tag: "test",
+  });
+  if (result === "gone") await devices.remove(device.endpoint);
+  if (result === "sent") response.status(204).end();
+  else response.status(502).json({ error: "Couldn’t reach this device’s push service" });
+});
+
+/** A field of a JSON request body, which could be anything. */
+function bodyField(body: unknown, key: string): unknown {
+  return typeof body === "object" && body !== null && key in body
+    ? Reflect.get(body, key)
+    : undefined;
+}
 
 if (config.isProduction) {
   const hashedAssetsDir = path.join(config.clientDir, "assets");
@@ -154,6 +249,7 @@ httpServer.listen(config.port, config.host, () => {
 });
 
 async function shutdown(): Promise<void> {
+  await reminders.stop();
   await repo.shutdown();
   wss.close();
   httpServer.close();

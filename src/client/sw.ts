@@ -10,6 +10,7 @@ import {
   type PrecacheEntry,
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
+import type { PushPayload } from "../shared/schema.ts";
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: (string | PrecacheEntry)[];
@@ -43,6 +44,60 @@ registerRoute(
   }),
 );
 addRoute();
+
+// Reminders, sent by the server (src/server/reminders.ts). Every push must show a notification:
+// Safari takes away the subscription of a site whose pushes show nothing.
+self.addEventListener("push", (event) => {
+  const payload = parsePayload(event.data);
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: payload.tag,
+      data: { url: payload.url },
+      icon: "/icon-192.png",
+    }),
+  );
+});
+
+// Tapping a notification opens what it's about, in the app if it's already open.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const data: unknown = event.notification.data;
+  const url =
+    typeof data === "object" && data !== null && "url" in data && typeof data.url === "string"
+      ? data.url
+      : "/";
+  event.waitUntil(openApp(new URL(url, self.location.origin).href));
+});
+
+async function openApp(url: string): Promise<void> {
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const open = windows[0];
+  if (!open) {
+    await self.clients.openWindow(url);
+    return;
+  }
+  await open.focus();
+  // The page follows the hash itself (main.tsx), without reloading.
+  // A client's postMessage has no target origin: it's always this one.
+  // oxlint-disable-next-line unicorn/require-post-message-target-origin
+  open.postMessage({ type: "open", url });
+}
+
+function parsePayload(data: PushMessageData | null): PushPayload {
+  const fallback = { title: "Scratchpad", body: "", url: "/", tag: "scratchpad" };
+  try {
+    const value: unknown = data?.json();
+    if (typeof value !== "object" || value === null) return fallback;
+    const field = (key: keyof PushPayload) =>
+      key in value && typeof Reflect.get(value, key) === "string"
+        ? String(Reflect.get(value, key))
+        : fallback[key];
+    return { title: field("title"), body: field("body"), url: field("url"), tag: field("tag") };
+  } catch {
+    return fallback;
+  }
+}
 
 async function fetchWithTimeout(request: Request, ms: number): Promise<Response> {
   let timer: ReturnType<typeof setTimeout> | undefined;

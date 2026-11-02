@@ -12,6 +12,18 @@ export const PROFILE_API_PATH = "/api/me";
 /** HTTP endpoint that lists everyone who has signed in, as {@link Person}s. */
 export const USERS_API_PATH = "/api/users";
 
+/** HTTP endpoint that returns the server's {@link PushKeyResponse}, for subscribing to push. */
+export const PUSH_KEY_API_PATH = "/api/push/key";
+
+/**
+ * HTTP endpoint for this device's push subscription: POST a {@link SavePushSubscriptionRequest},
+ * or DELETE a {@link PushEndpointRequest}.
+ */
+export const PUSH_SUBSCRIPTION_API_PATH = "/api/push/subscription";
+
+/** HTTP endpoint that sends a test notification. POST a {@link PushEndpointRequest}. */
+export const PUSH_TEST_API_PATH = "/api/push/test";
+
 export const MAX_NAME_LENGTH = 80;
 
 /**
@@ -73,6 +85,8 @@ export interface UserProfile {
   hue: Color;
   /** How this user sees other people in a note. */
   peerStyle: PeerStyle;
+  /** When to remind this user of to-dos due on a day without a time, in their time zone. */
+  reminderTime: TimeOfDay;
 }
 
 /** What anyone may see of a user: enough to show them, as in presence or a to-do's assignee. */
@@ -103,6 +117,7 @@ export interface UpdateProfileRequest {
   name?: string;
   hue?: Color;
   peerStyle?: PeerStyle;
+  reminderTime?: TimeOfDay;
 }
 
 /** The trimmed name, or undefined if it's blank or too long. */
@@ -124,8 +139,51 @@ export function isUserProfile(value: unknown): value is UserProfile {
     "hue" in value &&
     (value.hue === null || (typeof value.hue === "number" && Number.isFinite(value.hue))) &&
     "peerStyle" in value &&
-    isPeerStyle(value.peerStyle)
+    isPeerStyle(value.peerStyle) &&
+    "reminderTime" in value &&
+    isTimeOfDay(value.reminderTime)
   );
+}
+
+/** A time on the clock, `HH:MM` (24-hour), wherever the person it's for is. */
+export type TimeOfDay = string;
+
+export function isTimeOfDay(value: unknown): value is TimeOfDay {
+  return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+/** When reminders come for to-dos due on a day without a time, until someone picks another. */
+export const DEFAULT_REMINDER_TIME: TimeOfDay = "06:00";
+
+export interface PushKeyResponse {
+  /** The server's VAPID public key, base64url-encoded: `applicationServerKey` for subscribing. */
+  publicKey: string;
+}
+
+/** A browser's push subscription, as `PushSubscription.toJSON()` gives it. */
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export interface SavePushSubscriptionRequest {
+  subscription: PushSubscriptionData;
+  /** The device's IANA time zone, which its reminders' times are in. */
+  timeZone: string;
+}
+
+export interface PushEndpointRequest {
+  endpoint: string;
+}
+
+/** What a push message carries, for the service worker to show as a notification. */
+export interface PushPayload {
+  title: string;
+  body: string;
+  /** Opened when the notification is tapped. */
+  url: string;
+  /** A notification with the same tag replaces the last one. */
+  tag: string;
 }
 
 /**
@@ -224,10 +282,19 @@ export interface Todo {
   text: string;
   /** Milliseconds since the epoch. Open to-dos are listed in the order they were added. */
   createdAt: number;
-  /** The ID of the user it's assigned to, if anyone. */
+  /** The ID of the user it's assigned to, if anyone. Reminders go to them, or else to everyone. */
   assignee?: string;
-  /** The day it's due, as `YYYY-MM-DD`, if any. A day rather than a time: "due Friday". */
+  /**
+   * The day it's due, as `YYYY-MM-DD`: a day wherever you are, "due Friday". Every to-do gets one
+   * when it's added. To-dos from before that may have none, and count as due the day they were
+   * added.
+   */
   due?: string;
+  /**
+   * When on that day to be reminded, as a {@link TimeOfDay}. Without one, reminders come at each
+   * person's own reminder time.
+   */
+  time?: TimeOfDay;
   /** When it was marked done, in milliseconds since the epoch. Missing while it's open. */
   doneAt?: number;
 }

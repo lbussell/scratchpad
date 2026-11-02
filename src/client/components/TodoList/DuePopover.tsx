@@ -1,20 +1,27 @@
-import { CalendarDaysIcon, CalendarXIcon, ChevronLeftIcon } from "lucide-react";
-import { type ReactElement, type ReactNode, useState } from "react";
+import { CalendarDaysIcon, ChevronLeftIcon } from "lucide-react";
+import { type ReactElement, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { dateOf, type Day, dayOf, snoozeTo, SNOOZES } from "../../todos.ts";
+import { isTimeOfDay } from "../../../shared/schema.ts";
+import {
+  dateOf,
+  type Day,
+  dayOf,
+  formatTime,
+  isSameWhen,
+  snoozeTo,
+  SNOOZES,
+  type When,
+} from "../../todos.ts";
 
 interface DuePopoverProps {
-  due: Day | undefined;
+  when: When;
   today: Day;
-  /**
-   * Moving a due date that's set (Tomorrow, Next week, Next weekend, a date, or none), rather than
-   * setting one (which can also be Today).
-   */
-  snooze: boolean;
-  onChange: (due: Day | null) => void;
+  onChange: (when: When) => void;
   /** The button that opens it, and what's in it. */
   trigger: ReactElement;
   children: ReactNode;
@@ -23,60 +30,71 @@ interface DuePopoverProps {
 const shortDate = (day: Day) =>
   dateOf(day).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
-/** Sets or snoozes a to-do's due date: quick choices first, and a calendar for any other day. */
-export function DuePopover({ due, today, snooze, onChange, trigger, children }: DuePopoverProps) {
+/** Where a snooze lands: the time for the ones later today, otherwise the day. */
+function describe({ due, time }: When, today: Day): string {
+  if (time === undefined) return shortDate(due);
+  if (due === today) return formatTime(time);
+  return `${dateOf(due).toLocaleDateString(undefined, { weekday: "short" })} ${formatTime(time)}`;
+}
+
+/**
+ * Snoozes a to-do: a little later, another day, or any day and time from a calendar. Every to-do
+ * is due some day, so there's no removing it.
+ */
+export function DuePopover({ when, today, onChange, trigger, children }: DuePopoverProps) {
   const [isOpen, setOpen] = useState(false);
   const [isPickingDate, setPickingDate] = useState(false);
-  const choose = (day: Day | null) => {
-    onChange(day);
+  // When it opened, to show where the choices for later today land.
+  const [openedAt, setOpenedAt] = useState(() => new Date());
+  const choose = (next: When) => {
+    onChange(next);
     setOpen(false);
   };
-  const choices = SNOOZES.filter(({ id }) => !(snooze && id === "today"))
-    .map(({ id, label }) => ({ id, label, day: snoozeTo(id, today) }))
+  const choices = SNOOZES.map(({ id, label }) => ({ id, label, when: snoozeTo(id, openedAt) }))
     // Already there.
-    .filter(({ day }) => day !== due);
+    .filter((choice) => !isSameWhen(choice.when, when));
+  const later = choices.filter(({ when: { time } }) => time !== undefined);
+  const days = choices.filter(({ when: { time } }) => time === undefined);
+  const renderChoice = ({ id, label, when: next }: (typeof choices)[number]) => (
+    <li key={id}>
+      <Button
+        variant="ghost"
+        className="w-full justify-between"
+        // From the press, so "1 hour" means an hour, however long the menu was open.
+        onClick={() => choose(snoozeTo(id, new Date()))}
+      >
+        {label}
+        <span className="font-normal text-muted-foreground">{describe(next, today)}</span>
+      </Button>
+    </li>
+  );
 
   return (
     <Popover
       open={isOpen}
       onOpenChange={(open) => {
         setOpen(open);
-        if (open) setPickingDate(false);
+        if (!open) return;
+        setPickingDate(false);
+        setOpenedAt(new Date());
       }}
     >
       <PopoverTrigger render={trigger}>{children}</PopoverTrigger>
       <PopoverContent align="start" className="w-auto min-w-56">
         {isPickingDate ? (
-          <>
-            <Button variant="ghost" className="justify-start" onClick={() => setPickingDate(false)}>
-              <ChevronLeftIcon data-icon="inline-start" />
-              {snooze ? "Snooze until…" : "Due on…"}
-            </Button>
-            <Calendar
-              mode="single"
-              selected={due === undefined ? undefined : dateOf(due)}
-              // Snoozing only moves later, starting from today, however overdue it is.
-              defaultMonth={dateOf(snooze ? today : (due ?? today))}
-              disabled={snooze ? { before: dateOf(today) } : undefined}
-              onSelect={(date) => {
-                if (date) choose(dayOf(date));
-              }}
-            />
-          </>
+          <DateTimePicker
+            when={when}
+            today={today}
+            onBack={() => setPickingDate(false)}
+            onChoose={choose}
+          />
         ) : (
-          <ul className="flex flex-col" aria-label={snooze ? "Snooze until" : "Due"}>
-            {choices.map(({ id, label, day }) => (
-              <li key={id}>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-between"
-                  onClick={() => choose(day)}
-                >
-                  {label}
-                  <span className="font-normal text-muted-foreground">{shortDate(day)}</span>
-                </Button>
-              </li>
-            ))}
+          <ul className="flex flex-col" aria-label="Snooze until">
+            {later.map(renderChoice)}
+            <li aria-hidden="true">
+              <Separator className="my-1" />
+            </li>
+            {days.map(renderChoice)}
             <li>
               <Button
                 variant="ghost"
@@ -84,27 +102,67 @@ export function DuePopover({ due, today, snooze, onChange, trigger, children }: 
                 onClick={() => setPickingDate(true)}
               >
                 <CalendarDaysIcon data-icon="inline-start" />
-                Date…
+                Date and time…
               </Button>
             </li>
-            {due !== undefined && (
-              <>
-                <Separator className="my-1" />
-                <li>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start"
-                    onClick={() => choose(null)}
-                  >
-                    <CalendarXIcon data-icon="inline-start" />
-                    Remove due date
-                  </Button>
-                </li>
-              </>
-            )}
           </ul>
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+interface DateTimePickerProps {
+  when: When;
+  today: Day;
+  onBack: () => void;
+  onChoose: (when: When) => void;
+}
+
+/** Any day from today on, and a time on it if you like. */
+function DateTimePicker({ when, today, onBack, onChoose }: DateTimePickerProps) {
+  // Snoozing only moves later, starting from today, however overdue it is.
+  const [day, setDay] = useState<Day>(when.due < today ? today : when.due);
+  const [time, setTime] = useState(when.time ?? "");
+  const timeId = useId();
+
+  return (
+    <form
+      className="flex flex-col gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onChoose(isTimeOfDay(time) ? { due: day, time } : { due: day });
+      }}
+    >
+      <Button type="button" variant="ghost" className="justify-start" onClick={onBack}>
+        <ChevronLeftIcon data-icon="inline-start" />
+        Snooze until…
+      </Button>
+      <Calendar
+        mode="single"
+        required
+        selected={dateOf(day)}
+        defaultMonth={dateOf(day)}
+        disabled={{ before: dateOf(today) }}
+        onSelect={(date) => setDay(dayOf(date))}
+      />
+      <div className="px-2">
+        <Field>
+          <FieldLabel htmlFor={timeId}>Time</FieldLabel>
+          <Input
+            id={timeId}
+            type="time"
+            value={time}
+            onChange={(event) => setTime(event.target.value)}
+          />
+          <FieldDescription>
+            Optional. Without one, it’s each person’s reminder time.
+          </FieldDescription>
+        </Field>
+      </div>
+      <Button type="submit" className="mx-2 mb-1">
+        Snooze
+      </Button>
+    </form>
   );
 }

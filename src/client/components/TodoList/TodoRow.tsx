@@ -1,9 +1,4 @@
-import {
-  CalendarIcon,
-  CalendarPlusIcon,
-  RotateCwFadingClockIcon,
-  UserPlusIcon,
-} from "lucide-react";
+import { CalendarIcon, RotateCwFadingClockIcon, UserPlusIcon } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +6,16 @@ import { PeerAvatar } from "@/components/ui/peer";
 import type { Todo } from "../../../shared/schema.ts";
 import { useAutomergeText } from "../../hooks/useAutomergeText.ts";
 import { initials } from "../../initials.ts";
-import { type Day, dueLabel, findAssignee, setAssignee, setDone, setDue } from "../../todos.ts";
+import {
+  dueLabel,
+  dueOf,
+  findAssignee,
+  isOverdue,
+  setAssignee,
+  setDone,
+  setDue,
+  type When,
+} from "../../todos.ts";
 import { AssigneePicker } from "./AssigneePicker.tsx";
 import { DuePopover } from "./DuePopover.tsx";
 import { RevealOnHover } from "./RevealOnHover.tsx";
@@ -27,7 +31,7 @@ interface TodoRowProps {
 
 /**
  * One to-do: a checkbox and its text, with when it's due underneath. At the end, buttons to snooze
- * it (or give it a due date) and its assignee (or a button to assign it).
+ * it and its assignee (or a button to assign it).
  */
 export function TodoRow({ id, todo, isFirst, context }: TodoRowProps) {
   const { handle, today, people, newTodo, addTodo, leaveTodo } = context;
@@ -36,11 +40,12 @@ export function TodoRow({ id, todo, isFirst, context }: TodoRowProps) {
   const textarea = useRef<HTMLTextAreaElement | null>(null);
   const isNew = newTodo === id;
   const isDone = todo.doneAt !== undefined;
-  const { due } = todo;
-  const isOverdue = !isDone && due !== undefined && due < today;
+  const when: When =
+    todo.time === undefined ? { due: dueOf(todo) } : { due: dueOf(todo), time: todo.time };
+  const overdue = isOverdue(todo, today);
   const assignee = findAssignee(todo.assignee, people);
   const name = todo.text.trim() === "" ? "Untitled to-do" : todo.text;
-  const changeDue = (day: Day | null) => handle.change((doc) => setDue(doc, id, day));
+  const changeDue = (next: When) => handle.change((doc) => setDue(doc, id, next));
   const changeAssignee = (person: string | null) =>
     handle.change((doc) => setAssignee(doc, id, person));
 
@@ -94,24 +99,10 @@ export function TodoRow({ id, todo, isFirst, context }: TodoRowProps) {
               else addTodo();
             }}
           />
-          {due === undefined && !isDone && (
-            <RevealOnHover>
-              <DuePopover
-                due={due}
-                today={today}
-                snooze={false}
-                onChange={changeDue}
-                trigger={<Button variant="ghost" size="icon-sm" aria-label="Set due date" />}
-              >
-                <CalendarPlusIcon />
-              </DuePopover>
-            </RevealOnHover>
-          )}
-          {due !== undefined && !isDone && (
+          {!isDone && (
             <DuePopover
-              due={due}
+              when={when}
               today={today}
-              snooze
               onChange={changeDue}
               trigger={<Button variant="ghost" size="icon-sm" aria-label="Snooze" />}
             >
@@ -150,19 +141,17 @@ export function TodoRow({ id, todo, isFirst, context }: TodoRowProps) {
             )
           )}
         </div>
-        {due !== undefined && (
-          <span
-            className={
-              isOverdue
-                ? "flex items-center gap-1 pb-1 text-xs text-destructive"
-                : "flex items-center gap-1 pb-1 text-xs text-muted-foreground"
-            }
-          >
-            <CalendarIcon aria-hidden="true" className="size-3 shrink-0" />
-            {dueLabel(due, today)}
-            {isOverdue && <span className="sr-only">, overdue</span>}
-          </span>
-        )}
+        <span
+          className={
+            overdue
+              ? "flex items-center gap-1 pb-1 text-xs text-destructive"
+              : "flex items-center gap-1 pb-1 text-xs text-muted-foreground"
+          }
+        >
+          <CalendarIcon aria-hidden="true" className="size-3 shrink-0" />
+          {dueLabel(when, today)}
+          {overdue && <span className="sr-only">, overdue</span>}
+        </span>
       </div>
     </li>
   );

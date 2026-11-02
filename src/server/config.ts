@@ -32,4 +32,9 @@ export const config = {
   dataDir: path.resolve(projectRoot, process.env["DATA_DIR"] ?? "data"),
   clientDir: path.join(projectRoot, "dist/client"),
   auth,
+  /**
+   * How push services can reach whoever runs this server, a `mailto:` or `https:` URL. Without
+   * one, each notification gives its recipient's email.
+   */
+  pushContact: process.env["PUSH_CONTACT"],
 };
