@@ -312,9 +312,10 @@ function PeerStyleSetting() {
   };
 
   return (
-    <Field orientation="horizontal" className="items-start">
-      <FieldLabel htmlFor="peer-style">Show others as</FieldLabel>
-      <div className="flex flex-col items-end gap-2">
+    <>
+      {/* The error goes below, so the label stays centered beside the control. */}
+      <Field orientation="horizontal">
+        <FieldLabel htmlFor="peer-style">Show others as</FieldLabel>
         <Select
           items={peerStyles}
           value={user.peerStyle}
@@ -333,9 +334,9 @@ function PeerStyleSetting() {
             ))}
           </SelectContent>
         </Select>
-        {error !== undefined && <FieldError>{error}</FieldError>}
-      </div>
-    </Field>
+      </Field>
+      {error !== undefined && <FieldError className="text-right">{error}</FieldError>}
+    </>
   );
 }
 
@@ -492,10 +493,10 @@ function ReminderTimeSetting() {
   };
 
   return (
-    <Field orientation="horizontal" className="items-start">
-      {/* For to-dos due on a day without a time. */}
-      <FieldLabel htmlFor="reminder-time">Default reminder time</FieldLabel>
-      <div className="flex flex-col items-end gap-2">
+    <>
+      <Field orientation="horizontal">
+        {/* For to-dos due on a day without a time. */}
+        <FieldLabel htmlFor="reminder-time">Default reminder time</FieldLabel>
         <Input
           id="reminder-time"
           type="time"
@@ -509,8 +510,8 @@ function ReminderTimeSetting() {
           // Cleared and left: back to what it was.
           onBlur={() => setDraft(user.reminderTime)}
         />
-        {error !== undefined && <FieldError>{error}</FieldError>}
-      </div>
-    </Field>
+      </Field>
+      {error !== undefined && <FieldError className="text-right">{error}</FieldError>}
+    </>
   );
 }
