@@ -4,8 +4,6 @@ import { Button } from "@/components/ui/button";
 import { ColorSwatches } from "@/components/ui/color-swatches";
 import {
   Field,
-  FieldContent,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -353,10 +351,8 @@ function NotificationsSetting() {
   if (support === "supported") return <NotificationsSwitch />;
   return (
     <Field orientation="horizontal">
-      <FieldContent>
-        <FieldTitle>Notifications</FieldTitle>
-        <FieldDescription>{UNAVAILABLE[support]}</FieldDescription>
-      </FieldContent>
+      <FieldTitle>Notifications</FieldTitle>
+      <span className="text-sm text-muted-foreground">{UNAVAILABLE[support]}</span>
     </Field>
   );
 }
@@ -439,14 +435,9 @@ function NotificationsSwitch() {
   return (
     <>
       <Field orientation="horizontal">
-        <FieldContent>
-          <FieldLabel htmlFor="notifications">Notifications</FieldLabel>
-          <FieldDescription>
-            {isBlocked
-              ? "Notifications are blocked. Allow them for Scratchpad in your device’s settings."
-              : "Remind me on this device when to-dos are due."}
-          </FieldDescription>
-        </FieldContent>
+        <FieldLabel htmlFor="notifications">Notifications</FieldLabel>
+        {/* Only the device's settings can unblock them. */}
+        {isBlocked && <span className="text-sm text-muted-foreground">Blocked</span>}
         <Switch
           id="notifications"
           checked={isOn}
@@ -469,10 +460,10 @@ function NotificationsSwitch() {
 }
 
 const UNAVAILABLE: Record<Exclude<ReturnType<typeof pushSupport>, "supported">, string> = {
-  "needs-home-screen":
-    "To get reminders on iPhone or iPad, add Scratchpad to your Home Screen (in Safari, Share, then Add to Home Screen) and open it from there.",
-  development: "Notifications only work in production builds, which have a service worker.",
-  unsupported: "This browser can’t show notifications.",
+  "needs-home-screen": "Add to Home Screen first",
+  // No service worker.
+  development: "Production builds only",
+  unsupported: "Not supported here",
 };
 
 /** When reminders come for to-dos due on a day without a time. Applies as you pick. */
@@ -502,10 +493,8 @@ function ReminderTimeSetting() {
 
   return (
     <Field orientation="horizontal" className="items-start">
-      <FieldContent>
-        <FieldLabel htmlFor="reminder-time">Reminder time</FieldLabel>
-        <FieldDescription>For to-dos due on a day, without a time.</FieldDescription>
-      </FieldContent>
+      {/* For to-dos due on a day without a time. */}
+      <FieldLabel htmlFor="reminder-time">Default reminder time</FieldLabel>
       <div className="flex flex-col items-end gap-2">
         <Input
           id="reminder-time"

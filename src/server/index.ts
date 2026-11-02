@@ -193,8 +193,8 @@ app.post(PUSH_TEST_API_PATH, express.json(), async (request, response) => {
     return;
   }
   const result = await notify(device, {
-    title: "Notifications are on",
-    body: "Reminders for your to-dos will show up like this.",
+    title: "Test notification",
+    body: "",
     url: "/#settings",
     tag: "test",
   });

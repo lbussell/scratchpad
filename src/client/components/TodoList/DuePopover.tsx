@@ -2,7 +2,7 @@ import { CalendarDaysIcon, ChevronLeftIcon } from "lucide-react";
 import { type ReactElement, type ReactNode, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
@@ -127,8 +127,9 @@ function DateTimePicker({ when, today, onBack, onChoose }: DateTimePickerProps) 
   const timeId = useId();
 
   return (
+    // As wide as the calendar.
     <form
-      className="flex flex-col gap-2"
+      className="flex w-min flex-col gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         onChoose(isTimeOfDay(time) ? { due: day, time } : { due: day });
@@ -146,23 +147,19 @@ function DateTimePicker({ when, today, onBack, onChoose }: DateTimePickerProps) 
         disabled={{ before: dateOf(today) }}
         onSelect={(date) => setDay(dayOf(date))}
       />
-      <div className="px-2">
-        <Field>
+      <div className="flex flex-col gap-3 px-2 pb-1">
+        <Field orientation="horizontal">
           <FieldLabel htmlFor={timeId}>Time</FieldLabel>
           <Input
             id={timeId}
             type="time"
+            className="w-32"
             value={time}
             onChange={(event) => setTime(event.target.value)}
           />
-          <FieldDescription>
-            Optional. Without one, it’s each person’s reminder time.
-          </FieldDescription>
         </Field>
+        <Button type="submit">Snooze</Button>
       </div>
-      <Button type="submit" className="mx-2 mb-1">
-        Snooze
-      </Button>
     </form>
   );
 }
