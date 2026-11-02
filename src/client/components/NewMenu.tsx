@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSidebar } from "@/components/ui/sidebar";
 import type { DocumentTypeId, FolderId, RootDoc } from "../../shared/schema.ts";
 import { documentTypeIds, documentTypes } from "../documentTypes.ts";
 import { addFolder, addDocument, newFolderId } from "../tree.ts";
@@ -38,12 +39,16 @@ export function NewMenu(props: NewMenuProps) {
 function LoadedNewMenu({ rootDocUrl, onCreateDocument, onCreateFolder }: NewMenuProps) {
   const repo = useRepo();
   const root = useDocHandle<RootDoc>(rootDocUrl, { suspense: true });
+  const { setOpenMobile } = useSidebar();
 
   const createDocument = (type: DocumentTypeId) => {
     movesFocus.current = true;
     const handle = repo.create(documentTypes[type].create());
     root.change((doc) => addDocument(doc, handle.url));
     onCreateDocument(handle.url);
+    // On mobile the sidebar is a drawer over the new document's title, so get it out of the way.
+    // A new folder's name is edited in the sidebar, so that leaves it open.
+    setOpenMobile(false);
   };
 
   // The menu puts focus back on its button as it closes, which would take it from the new
